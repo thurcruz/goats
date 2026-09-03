@@ -9,6 +9,9 @@ export interface Task {
   createdAt: string
   color?: string
   goalId?: string
+  scheduledDate?: string
+  startTime?: string
+  durationMinutes?: number
 }
 
 export type GoalCategory = 'carreira' | 'saude' | 'financeiro' | 'relacionamentos' | 'conhecimento'
@@ -102,6 +105,8 @@ export interface Book {
   notes?: string
   startedAt?: string
   finishedAt?: string
+  currentPage?: number
+  totalPages?: number
 }
 
 export interface Note {
@@ -121,6 +126,24 @@ export interface MoodEntry {
   note?: string
 }
 
+export interface SleepEntry {
+  id: string
+  date: string
+  hours: number
+  quality: MoodLevel
+  note?: string
+}
+
+export type RepertoireKind = 'ideia' | 'citacao' | 'aprendizado' | 'nota'
+
+export interface RepertoireItem {
+  id: string
+  kind: RepertoireKind
+  text: string
+  source?: string
+  createdAt: string
+}
+
 export interface GoatStore {
   tasks: Task[]
   goals: Goal[]
@@ -131,6 +154,18 @@ export interface GoatStore {
   books: Book[]
   notes: Note[]
   moods: MoodEntry[]
+  repertoire: RepertoireItem[]
+  sleep: SleepEntry[]
   userName: string
   purpose: string
+  metrics: EvolutionMetrics
+}
+
+export interface EvolutionMetrics {
+  streak: number
+  completedCommitments: number
+  totalCommitments: number
+  carriedCommitments: number
+  completedGoals: number
+  periodDays: number
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { GoatStore, Task, Goal, Transaction, FinancialGoal, Addiction, WorkoutSession, Book, Note, MoodEntry } from './types'
+import { GoatStore, Task, Goal, Transaction, FinancialGoal, Addiction, WorkoutSession, Book, Note, MoodEntry, RepertoireItem, SleepEntry } from './types'
 
 const STORAGE_KEY = 'goat-system-store'
 const BACKEND_ENABLED = Boolean(
@@ -12,6 +12,7 @@ const yesterday = new Date()
 yesterday.setDate(yesterday.getDate() - 1)
 
 const initialData: GoatStore = {
+  metrics: { streak: 0, completedCommitments: 0, totalCommitments: 0, carriedCommitments: 0, completedGoals: 0, periodDays: 30 },
   userName: 'Arthur',
   purpose: 'Ser um empreendedor independente que tem saúde e liberdade para criar.',
   tasks: [
@@ -174,6 +175,14 @@ const initialData: GoatStore = {
     { id: 'mo5', date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), mood: 4 },
     { id: 'mo6', date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), mood: 3 },
   ],
+  repertoire: [
+    { id: 'r1', kind: 'aprendizado', text: 'Trabalho profundo precisa de um ritual de entrada.', source: 'Deep Work', createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
+    { id: 'r2', kind: 'citacao', text: 'Você não sobe ao nível dos seus objetivos; você cai ao nível dos seus sistemas.', source: 'James Clear', createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() },
+  ],
+  sleep: [
+    { id: 's1', date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), hours: 7.5, quality: 4 },
+    { id: 's2', date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), hours: 6, quality: 3, note: 'Dormi tarde' },
+  ],
 }
 
 function loadStore(): GoatStore {
@@ -181,7 +190,8 @@ function loadStore(): GoatStore {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return initialData
-    return JSON.parse(raw) as GoatStore
+    const parsed = JSON.parse(raw) as Partial<GoatStore>
+    return { ...initialData, ...parsed, metrics: parsed.metrics ?? initialData.metrics } as GoatStore
   } catch {
     return initialData
   }
@@ -192,22 +202,38 @@ function saveStore(data: GoatStore) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
 }
 
-async function loadRemoteStore(): Promise<GoatStore | null> {
+async function loadProfile(): Promise<{ userName?: string; purpose?: string } | null> {
   if (!BACKEND_ENABLED) return null
-  const response = await fetch('/api/store', { cache: 'no-store' })
+  const response = await fetch('/api/profile', { cache: 'no-store' })
   if (!response.ok) return null
-  const data = await response.json() as { store: GoatStore | null }
-  return data.store
+  const data = await response.json() as { profile?: { display_name?: string | null; purpose?: string | null } }
+  return { userName: data.profile?.display_name ?? undefined, purpose: data.profile?.purpose ?? undefined }
 }
 
-async function saveRemoteStore(data: GoatStore) {
+function saveProfile(payload: { displayName?: string; purpose?: string }) {
   if (!BACKEND_ENABLED) return
-  await fetch('/api/store', {
-    method: 'PUT',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ store: data }),
-  })
+  void fetch('/api/profile', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) }).catch(() => undefined)
 }
+
+async function loadCoreDomains(): Promise<Pick<GoatStore, 'goals' | 'tasks' | 'metrics'> | null> {
+  if (!BACKEND_ENABLED) return null
+  const response = await fetch('/api/core', { cache: 'no-store' })
+  if (!response.ok) return null
+  return response.json() as Promise<Pick<GoatStore, 'goals' | 'tasks' | 'metrics'>>
+}
+
+async function syncCore(action: string, payload: { task?: Task; goal?: Goal; id?: string; eventDate?: string }) {
+  if (!BACKEND_ENABLED) return
+  await fetch('/api/core', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action, ...payload }) })
+}
+
+type DomainState = Pick<GoatStore, 'moods'|'books'|'notes'|'transactions'|'financialGoals'|'addictions'|'workouts'>
+async function loadDomains(): Promise<DomainState | null> {
+  if (!BACKEND_ENABLED) return null
+  const response = await fetch('/api/domains', { cache: 'no-store' })
+  return response.ok ? response.json() as Promise<DomainState> : null
+}
+async function syncDomain(action:string,payload:Record<string,unknown>){if(!BACKEND_ENABLED)return;await fetch('/api/domains',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action,...payload})})}
 
 export function useGoatStore() {
   const [store, setStore] = useState<GoatStore>(initialData)
@@ -219,9 +245,12 @@ export function useGoatStore() {
       const local = loadStore()
       let next = local
       try {
-        const remote = await loadRemoteStore()
-        if (remote && Object.keys(remote).length > 0) next = remote
-        else if (BACKEND_ENABLED) await saveRemoteStore(local)
+        const core = await loadCoreDomains()
+        if (core) next = { ...next, goals: core.goals, tasks: core.tasks, metrics: core.metrics }
+        const domains = await loadDomains()
+        if (domains) next = { ...next, ...domains }
+        const profile = await loadProfile()
+        if (profile) next = { ...next, userName: profile.userName ?? next.userName, purpose: profile.purpose ?? next.purpose }
       } catch { /* Offline-first: local state remains available. */ }
       if (active) { setStore(next); saveStore(next); setHydrated(true) }
     })
@@ -232,46 +261,54 @@ export function useGoatStore() {
     setStore((prev) => {
       const next = updater(prev)
       saveStore(next)
-      void saveRemoteStore(next).catch(() => undefined)
       return next
     })
   }, [])
 
-  const addTask = useCallback((task: Task) => update((s) => ({ ...s, tasks: [...s.tasks, task] })), [update])
-  const updateTask = useCallback((task: Task) => update((s) => ({ ...s, tasks: s.tasks.map((t) => (t.id === task.id ? task : t)) })), [update])
-  const deleteTask = useCallback((id: string) => update((s) => ({ ...s, tasks: s.tasks.filter((t) => t.id !== id) })), [update])
+  const addTask = useCallback((task: Task) => { update((s) => ({ ...s, tasks: [...s.tasks, task] })); void syncCore('addTask', { task }).catch(() => undefined) }, [update])
+  const updateTask = useCallback((task: Task, eventDate?: string) => { update((s) => ({ ...s, tasks: s.tasks.map((t) => (t.id === task.id ? task : t)) })); void syncCore('updateTask', { task, eventDate }).catch(() => undefined) }, [update])
+  const deleteTask = useCallback((id: string) => { update((s) => ({ ...s, tasks: s.tasks.filter((t) => t.id !== id) })); void syncCore('deleteTask', { id }).catch(() => undefined) }, [update])
 
-  const addGoal = useCallback((goal: Goal) => update((s) => ({ ...s, goals: [...s.goals, goal] })), [update])
-  const updateGoal = useCallback((goal: Goal) => update((s) => ({ ...s, goals: s.goals.map((g) => (g.id === goal.id ? goal : g)) })), [update])
-  const deleteGoal = useCallback((id: string) => update((s) => ({ ...s, goals: s.goals.filter((g) => g.id !== id) })), [update])
+  const addGoal = useCallback((goal: Goal) => { update((s) => ({ ...s, goals: [...s.goals, goal] })); void syncCore('addGoal', { goal }).catch(() => undefined) }, [update])
+  const updateGoal = useCallback((goal: Goal) => { update((s) => ({ ...s, goals: s.goals.map((g) => (g.id === goal.id ? goal : g)) })); void syncCore('updateGoal', { goal }).catch(() => undefined) }, [update])
+  const deleteGoal = useCallback((id: string) => { update((s) => ({ ...s, goals: s.goals.filter((g) => g.id !== id) })); void syncCore('deleteGoal', { id }).catch(() => undefined) }, [update])
 
-  const addTransaction = useCallback((tx: Transaction) => update((s) => ({ ...s, transactions: [...s.transactions, tx] })), [update])
-  const deleteTransaction = useCallback((id: string) => update((s) => ({ ...s, transactions: s.transactions.filter((t) => t.id !== id) })), [update])
+  const addTransaction = useCallback((tx: Transaction) => {update((s) => ({ ...s, transactions: [...s.transactions, tx] }));void syncDomain('addTransaction',{transaction:tx}).catch(()=>undefined)}, [update])
+  const deleteTransaction = useCallback((id: string) => {update((s) => ({ ...s, transactions: s.transactions.filter((t) => t.id !== id) }));void syncDomain('deleteTransaction',{id}).catch(()=>undefined)}, [update])
 
-  const addAddiction = useCallback((a: Addiction) => update((s) => ({ ...s, addictions: [...s.addictions, a] })), [update])
-  const updateAddiction = useCallback((a: Addiction) => update((s) => ({ ...s, addictions: s.addictions.map((x) => (x.id === a.id ? a : x)) })), [update])
+  const addAddiction = useCallback((a: Addiction) => {update((s) => ({ ...s, addictions: [...s.addictions, a] }));void syncDomain('addAddiction',{addiction:a}).catch(()=>undefined)}, [update])
+  const updateAddiction = useCallback((a: Addiction) => {update((s) => ({ ...s, addictions: s.addictions.map((x) => (x.id === a.id ? a : x)) }));void syncDomain('updateAddiction',{addiction:a}).catch(()=>undefined)}, [update])
 
-  const updateWorkout = useCallback((w: WorkoutSession) => update((s) => ({ ...s, workouts: s.workouts.map((x) => (x.id === w.id ? w : x)) })), [update])
-  const addWorkout = useCallback((w: WorkoutSession) => update((s) => ({ ...s, workouts: [...s.workouts, w] })), [update])
+  const updateWorkout = useCallback((w: WorkoutSession) => {update((s) => ({ ...s, workouts: s.workouts.map((x) => (x.id === w.id ? w : x)) }));void syncDomain('updateWorkout',{workout:w}).catch(()=>undefined)}, [update])
+  const addWorkout = useCallback((w: WorkoutSession) => {update((s) => ({ ...s, workouts: [...s.workouts, w] }));void syncDomain('addWorkout',{workout:w}).catch(()=>undefined)}, [update])
 
-  const addBook = useCallback((b: Book) => update((s) => ({ ...s, books: [...s.books, b] })), [update])
-  const updateBook = useCallback((b: Book) => update((s) => ({ ...s, books: s.books.map((x) => (x.id === b.id ? b : x)) })), [update])
-  const deleteBook = useCallback((id: string) => update((s) => ({ ...s, books: s.books.filter((b) => b.id !== id) })), [update])
+  const addBook = useCallback((b: Book) => {update((s) => ({ ...s, books: [...s.books, b] }));void syncDomain('addBook',{book:b}).catch(()=>undefined)}, [update])
+  const updateBook = useCallback((b: Book) => {update((s) => ({ ...s, books: s.books.map((x) => (x.id === b.id ? b : x)) }));void syncDomain('updateBook',{book:b}).catch(()=>undefined)}, [update])
+  const deleteBook = useCallback((id: string) => {update((s) => ({ ...s, books: s.books.filter((b) => b.id !== id) }));void syncDomain('deleteBook',{id}).catch(()=>undefined)}, [update])
 
-  const addNote = useCallback((n: Note) => update((s) => ({ ...s, notes: [...s.notes, n] })), [update])
-  const updateNote = useCallback((n: Note) => update((s) => ({ ...s, notes: s.notes.map((x) => (x.id === n.id ? n : x)) })), [update])
-  const deleteNote = useCallback((id: string) => update((s) => ({ ...s, notes: s.notes.filter((n) => n.id !== id) })), [update])
+  const addNote = useCallback((n: Note) => {update((s) => ({ ...s, notes: [...s.notes, n] }));void syncDomain('addNote',{note:n}).catch(()=>undefined)}, [update])
+  const updateNote = useCallback((n: Note) => {update((s) => ({ ...s, notes: s.notes.map((x) => (x.id === n.id ? n : x)) }));void syncDomain('updateNote',{note:n}).catch(()=>undefined)}, [update])
+  const deleteNote = useCallback((id: string) => {update((s) => ({ ...s, notes: s.notes.filter((n) => n.id !== id) }));void syncDomain('deleteNote',{id}).catch(()=>undefined)}, [update])
 
   const addMood = useCallback((m: MoodEntry) => update((s) => {
     const existing = s.moods.find((x) => new Date(x.date).toDateString() === new Date(m.date).toDateString())
     if (existing) return { ...s, moods: s.moods.map((x) => (x.id === existing.id ? m : x)) }
     return { ...s, moods: [...s.moods, m] }
   }), [update])
+  const saveMood = useCallback((m:MoodEntry)=>{addMood(m);void syncDomain('addMood',{mood:m}).catch(()=>undefined)},[addMood])
 
-  const setPurpose = useCallback((p: string) => update((s) => ({ ...s, purpose: p })), [update])
-  const setUserName = useCallback((n: string) => update((s) => ({ ...s, userName: n })), [update])
-  const addFinancialGoal = useCallback((fg: FinancialGoal) => update((s) => ({ ...s, financialGoals: [...(s.financialGoals ?? []), fg] })), [update])
-  const updateFinancialGoal = useCallback((fg: FinancialGoal) => update((s) => ({ ...s, financialGoals: (s.financialGoals ?? []).map((x) => (x.id === fg.id ? fg : x)) })), [update])
+  const setPurpose = useCallback((p: string) => { update((s) => ({ ...s, purpose: p })); saveProfile({ purpose: p }) }, [update])
+  const setUserName = useCallback((n: string) => { update((s) => ({ ...s, userName: n })); saveProfile({ displayName: n }) }, [update])
+  const addFinancialGoal = useCallback((fg: FinancialGoal) => {update((s) => ({ ...s, financialGoals: [...(s.financialGoals ?? []), fg] }));void syncDomain('addFinancialGoal',{financialGoal:fg}).catch(()=>undefined)}, [update])
+  const updateFinancialGoal = useCallback((fg: FinancialGoal) => {update((s) => ({ ...s, financialGoals: (s.financialGoals ?? []).map((x) => (x.id === fg.id ? fg : x)) }));void syncDomain('updateFinancialGoal',{financialGoal:fg}).catch(()=>undefined)}, [update])
+
+  const addRepertoire = useCallback((item: RepertoireItem) => update((s) => ({ ...s, repertoire: [item, ...(s.repertoire ?? [])] })), [update])
+  const deleteRepertoire = useCallback((id: string) => update((s) => ({ ...s, repertoire: (s.repertoire ?? []).filter((r) => r.id !== id) })), [update])
+
+  const addSleep = useCallback((entry: SleepEntry) => update((s) => {
+    const existing = (s.sleep ?? []).find((x) => new Date(x.date).toDateString() === new Date(entry.date).toDateString())
+    return existing ? { ...s, sleep: s.sleep.map((x) => (x.id === existing.id ? entry : x)) } : { ...s, sleep: [entry, ...(s.sleep ?? [])] }
+  }), [update])
 
   return {
     store,
@@ -283,10 +320,13 @@ export function useGoatStore() {
     updateWorkout, addWorkout,
     addBook, updateBook, deleteBook,
     addNote, updateNote, deleteNote,
-    addMood,
+    addMood: saveMood,
     setPurpose,
     setUserName,
     addFinancialGoal,
     updateFinancialGoal,
+    addRepertoire,
+    deleteRepertoire,
+    addSleep,
   }
 }

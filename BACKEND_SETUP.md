@@ -5,8 +5,7 @@
 - PostgreSQL com isolamento por usuário (Row Level Security).
 - Login por link mágico no e-mail.
 - Sessão segura em cookies.
-- API `GET/PUT /api/store` autenticada.
-- Migração automática do estado local para a conta na primeira sincronização.
+- APIs autenticadas por domínio normalizado: `/api/core` (metas e compromissos), `/api/domains` (finanças, hábitos, humor, conhecimento) e `/api/profile` (identidade e permissões da IA).
 - Preferência offline: o app continua utilizável se o backend estiver indisponível.
 - Campos de vínculo com WhatsApp e permissões granulares da Goat AI.
 - Log estrutural para auditoria futura das ações da IA.
@@ -22,15 +21,12 @@
    - Redirect URL: `http://localhost:3000/auth/callback`
 6. Reinicie `npm run dev` e acesse `/login`.
 
-## Comportamento de migração
+## Comportamento de sincronização
 
-Ao entrar pela primeira vez:
+- Ao carregar, o app hidrata a partir das tabelas normalizadas (`/api/core`, `/api/domains`) e do perfil (`/api/profile`); o `localStorage` serve como camada offline.
+- Cada alteração é salva localmente e sincronizada por domínio com o PostgreSQL.
 
-- se a conta já possuir estado remoto, ele prevalece;
-- se a conta estiver vazia, o estado atual do `localStorage` é enviado;
-- cada alteração seguinte é salva localmente e sincronizada com o PostgreSQL.
-
-O `user_state` em JSONB é uma camada de transição para preservar o protótipo. Antes de análises avançadas da Goat AI e relatórios em escala, os domínios devem ser normalizados em tabelas de eventos (`commitments`, `habit_events`, `goal_events`, `mood_entries` etc.).
+Observação: a tabela `user_state` (JSONB) foi a camada de transição original do protótipo e **não é mais usada** pela aplicação — a persistência agora é totalmente normalizada. A tabela permanece no banco por compatibilidade; se houver dados relevantes apenas nela, migre-os para as tabelas normalizadas antes de removê-la.
 
 ## Segurança
 

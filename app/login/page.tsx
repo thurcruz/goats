@@ -1,22 +1,35 @@
 'use client'
-import { useState } from 'react'
-import { ArrowRight, Mail, Sparkles } from 'lucide-react'
+
+import { FormEvent, useState } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
+import AuthVisual from '@/components/auth/AuthVisual'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
-  const [message, setMessage] = useState('')
-  const [loading, setLoading] = useState(false)
-  async function login() {
-    if (!email.trim()) return
-    setLoading(true); setMessage('')
+  const router = useRouter(); const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [showPassword, setShowPassword] = useState(false); const [message, setMessage] = useState(''); const [loading, setLoading] = useState(false)
+  async function login(event: FormEvent) {
+    event.preventDefault(); setLoading(true); setMessage('')
     try {
-      const supabase = createSupabaseBrowserClient()
-      const redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin}/auth/callback`
-      const { error } = await supabase.auth.signInWithOtp({ email: email.trim(), options: { emailRedirectTo: redirectTo } })
-      setMessage(error ? error.message : 'Enviamos um link seguro para o seu e-mail.')
+      const { error } = await createSupabaseBrowserClient().auth.signInWithPassword({ email: email.trim(), password })
+      if (error) setMessage(error.message); else {
+        const requestedNext = new URLSearchParams(window.location.search).get('next')
+        const next = requestedNext?.startsWith('/') && !requestedNext.startsWith('//') ? requestedNext : '/dashboard'
+        router.push(next); router.refresh()
+      }
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Não foi possível entrar.') }
     finally { setLoading(false) }
   }
-  return <main className="grid min-h-svh place-items-center p-5"><section className="surface w-full max-w-md p-7 md:p-9"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#d0e027] text-black"><Sparkles size={21}/></span><p className="eyebrow mt-8">Sua evolução continua</p><h1 className="display mt-3 text-4xl font-semibold">Entre no GOATS.</h1><p className="muted mt-3 text-sm">Enviaremos um link de acesso. Sem senha para esquecer.</p><label className="muted mt-7 block text-xs font-semibold uppercase tracking-wider">Seu e-mail</label><div className="field mt-2 flex items-center gap-3"><Mail size={17} className="muted"/><input className="min-w-0 flex-1 bg-transparent outline-none" type="email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==='Enter'&&login()} placeholder="voce@exemplo.com"/></div><button onClick={login} disabled={loading} className="energy-button mt-4 flex w-full items-center justify-center gap-2 py-3 disabled:opacity-50">{loading?'Enviando...':'Continuar'}<ArrowRight size={17}/></button>{message&&<p className="muted mt-4 text-center text-sm">{message}</p>}</section></main>
+  return <main className="auth-page"><AuthVisual/><section className="auth-panel">
+    <Link href="/" className="brand-mark auth-mobile-brand"><span>G</span><strong>GOATS</strong></Link>
+    <div className="auth-form-wrap"><p className="section-label">BEM-VINDO DE VOLTA</p><h1>Continue sua<br/><em>evolução.</em></h1><p className="auth-subtitle">Entre para retomar de onde parou.</p>
+      <form onSubmit={login} className="auth-form">
+        <label>E-mail<div className="auth-field"><Mail size={18}/><input required type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="voce@exemplo.com"/></div></label>
+        <label>Senha <Link href="/recuperar-senha">Esqueci minha senha</Link><div className="auth-field"><LockKeyhole size={18}/><input required minLength={6} type={showPassword?'text':'password'} autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Sua senha"/><button type="button" aria-label={showPassword?'Ocultar senha':'Mostrar senha'} onClick={()=>setShowPassword(!showPassword)}>{showPassword?<EyeOff size={18}/>:<Eye size={18}/>}</button></div></label>
+        <button className="auth-submit" disabled={loading}>{loading?'Entrando...':'Entrar'}<ArrowRight size={18}/></button>
+        {message&&<p className="auth-message-text" role="alert">{message}</p>}
+      </form><p className="auth-switch">Ainda não tem uma conta? <Link href="/cadastro">Comece agora</Link></p>
+    </div>
+  </section></main>
 }

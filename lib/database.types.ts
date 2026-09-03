@@ -147,6 +147,18 @@ export type Database = {
           },
         ]
       }
+      ai_conversations: {
+        Row: { id: string; user_id: string; title: string; created_at: string; updated_at: string }
+        Insert: { id?: string; user_id: string; title?: string; created_at?: string; updated_at?: string }
+        Update: { id?: string; user_id?: string; title?: string; created_at?: string; updated_at?: string }
+        Relationships: []
+      }
+      ai_messages: {
+        Row: { id: string; user_id: string; conversation_id: string; role: string; content: string; sources: Json; proposed_action: Json | null; action_status: string | null; created_at: string }
+        Insert: { id?: string; user_id: string; conversation_id: string; role: string; content: string; sources?: Json; proposed_action?: Json | null; action_status?: string | null; created_at?: string }
+        Update: { id?: string; user_id?: string; conversation_id?: string; role?: string; content?: string; sources?: Json; proposed_action?: Json | null; action_status?: string | null; created_at?: string }
+        Relationships: []
+      }
       books: {
         Row: {
           author: string
@@ -270,6 +282,9 @@ export type Database = {
           id: string
           kind: string
           priority: number
+          scheduled_date: string | null
+          start_time: string | null
+          duration_minutes: number | null
           title: string
           updated_at: string
           user_id: string
@@ -283,6 +298,9 @@ export type Database = {
           id?: string
           kind: string
           priority?: number
+          scheduled_date?: string | null
+          start_time?: string | null
+          duration_minutes?: number | null
           title: string
           updated_at?: string
           user_id: string
@@ -296,6 +314,9 @@ export type Database = {
           id?: string
           kind?: string
           priority?: number
+          scheduled_date?: string | null
+          start_time?: string | null
+          duration_minutes?: number | null
           title?: string
           updated_at?: string
           user_id?: string
@@ -739,7 +760,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_my_credit_account: {
+        Args: Record<PropertyKey, never>
+        Returns: { balance: number }[]
+      }
     }
     Enums: {
       [_ in never]: never
@@ -872,4 +896,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-

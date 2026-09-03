@@ -1,0 +1,51 @@
+import { NextResponse } from 'next/server'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
+import type { Addiction, Book, BookStatus, FinancialGoal, MoodEntry, Note, Transaction, WorkoutSession } from '@/lib/types'
+import type { Json } from '@/lib/database.types'
+
+const bookStatusFromDb:Record<string,BookStatus>={want_to_read:'quero-ler',reading:'lendo',completed:'lido',abandoned:'quero-ler'}
+const bookStatusToDb:Record<BookStatus,'want_to_read'|'reading'|'completed'>={'quero-ler':'want_to_read',lendo:'reading',lido:'completed'}
+async function context(){const supabase=await createSupabaseServerClient();const{data:{user},error}=await supabase.auth.getUser();return error||!user?null:{supabase,user}}
+
+export async function GET(){
+  try{const ctx=await context();if(!ctx)return NextResponse.json({error:'Não autenticado'},{status:401})
+    const [moodsR,booksR,notesR,transactionsR,financialR,addictionsR,addictionEventsR,workoutsR]=await Promise.all([
+      ctx.supabase.from('mood_entries').select('id,mood,note,recorded_at').eq('user_id',ctx.user.id).order('recorded_at'),
+      ctx.supabase.from('books').select('id,title,author,status,rating,summary,started_at,finished_at,current_page,total_pages').eq('user_id',ctx.user.id).order('created_at'),
+      ctx.supabase.from('knowledge_notes').select('id,title,content,created_at,updated_at').eq('user_id',ctx.user.id).order('updated_at'),
+      ctx.supabase.from('transactions').select('id,description,amount,type,category,occurred_at').eq('user_id',ctx.user.id).order('occurred_at'),
+      ctx.supabase.from('financial_goals').select('id,title,target,current_amount').eq('user_id',ctx.user.id).neq('status','archived').order('created_at'),
+      ctx.supabase.from('addictions').select('id,name,start_date,daily_cost,replacement_plan').eq('user_id',ctx.user.id).eq('active',true).order('created_at'),
+      ctx.supabase.from('addiction_events').select('id,addiction_id,event_type,trigger,note,occurred_at').eq('user_id',ctx.user.id).order('occurred_at'),
+      ctx.supabase.from('workout_plans').select('id,name,exercises').eq('user_id',ctx.user.id).eq('active',true).order('created_at'),
+    ])
+    const error=moodsR.error??booksR.error??notesR.error??transactionsR.error??financialR.error??addictionsR.error??addictionEventsR.error??workoutsR.error;if(error)throw error
+    const moods:MoodEntry[]=(moodsR.data??[]).map(row=>({id:row.id,date:row.recorded_at,mood:row.mood as MoodEntry['mood'],note:row.note??undefined}))
+    const books:Book[]=(booksR.data??[]).map(row=>({id:row.id,title:row.title,author:row.author,status:bookStatusFromDb[row.status]??'quero-ler',rating:row.rating as Book['rating'],notes:row.summary??undefined,startedAt:row.started_at??undefined,finishedAt:row.finished_at??undefined,currentPage:row.current_page??undefined,totalPages:row.total_pages??undefined}))
+    const notes:Note[]=(notesR.data??[]).map(row=>({id:row.id,title:row.title,content:row.content,createdAt:row.created_at,updatedAt:row.updated_at}))
+    const transactions:Transaction[]=(transactionsR.data??[]).map(row=>({id:row.id,description:row.description,amount:Number(row.amount),type:row.type==='income'?'entrada':'saida',category:row.category,createdAt:row.occurred_at}))
+    const financialGoals:FinancialGoal[]=(financialR.data??[]).map(row=>({id:row.id,title:row.title,target:Number(row.target),current:Number(row.current_amount)}))
+    const addictions:Addiction[]=(addictionsR.data??[]).map(row=>{const events=(addictionEventsR.data??[]).filter(event=>event.addiction_id===row.id);return{id:row.id,name:row.name,startDate:row.start_date,dailyCost:row.daily_cost===null?undefined:Number(row.daily_cost),contingencyPlan:Array.isArray(row.replacement_plan)?row.replacement_plan.filter((item):item is string=>typeof item==='string'):[],relapses:events.filter(event=>event.event_type==='relapse').map(event=>({id:event.id,date:event.occurred_at,note:event.note??undefined})),triggers:events.filter(event=>event.event_type!=='relapse').map(event=>({id:event.id,date:event.occurred_at,description:event.trigger??undefined,resisted:event.event_type==='resisted'}))}})
+    const workouts:WorkoutSession[]=(workoutsR.data??[]).map(row=>({id:row.id,name:row.name,exercises:Array.isArray(row.exercises)?row.exercises as unknown as WorkoutSession['exercises']:[]}))
+    return NextResponse.json({moods,books,notes,transactions,financialGoals,addictions,workouts})
+  }catch(error){return NextResponse.json({error:error instanceof Error?error.message:'Dados indisponíveis'},{status:503})}}
+
+export async function POST(request:Request){
+    try{const ctx=await context();if(!ctx)return NextResponse.json({error:'Não autenticado'},{status:401});const body=await request.json() as {action?:string;mood?:MoodEntry;book?:Book;note?:Note;transaction?:Transaction;financialGoal?:FinancialGoal;addiction?:Addiction;workout?:WorkoutSession;id?:string}
+    if(body.action==='addMood'&&body.mood){const m=body.mood;const day=m.date.slice(0,10),start=`${day}T00:00:00.000Z`,end=`${day}T23:59:59.999Z`;const{data:existing}=await ctx.supabase.from('mood_entries').select('id').eq('user_id',ctx.user.id).gte('recorded_at',start).lte('recorded_at',end).maybeSingle();const query=existing?ctx.supabase.from('mood_entries').update({mood:m.mood,note:m.note??null,recorded_at:m.date}).eq('id',existing.id):ctx.supabase.from('mood_entries').insert({id:m.id,user_id:ctx.user.id,mood:m.mood,note:m.note??null,recorded_at:m.date});const{error}=await query;if(error)throw error}
+    else if(body.action==='addBook'&&body.book){const b=body.book;const total=b.totalPages&&b.totalPages>0?Math.floor(b.totalPages):null;const page=Math.max(0,Math.min(Math.floor(b.currentPage??0),total??Number.MAX_SAFE_INTEGER));const{error}=await ctx.supabase.from('books').insert({id:b.id,user_id:ctx.user.id,title:b.title,author:b.author,status:bookStatusToDb[b.status],rating:b.rating??null,summary:b.notes??null,total_pages:total,current_page:page});if(error)throw error}
+    else if(body.action==='updateBook'&&body.book){const b=body.book;const total=b.totalPages&&b.totalPages>0?Math.floor(b.totalPages):null;const page=Math.max(0,Math.min(Math.floor(b.currentPage??0),total??Number.MAX_SAFE_INTEGER));const{error}=await ctx.supabase.from('books').update({title:b.title,author:b.author,status:bookStatusToDb[b.status],rating:b.rating??null,summary:b.notes??null,total_pages:total,current_page:page,updated_at:new Date().toISOString()}).eq('id',b.id).eq('user_id',ctx.user.id);if(error)throw error}
+    else if(body.action==='deleteBook'&&body.id){const{error}=await ctx.supabase.from('books').delete().eq('id',body.id).eq('user_id',ctx.user.id);if(error)throw error}
+    else if(body.action==='addNote'&&body.note){const n=body.note;const{error}=await ctx.supabase.from('knowledge_notes').insert({id:n.id,user_id:ctx.user.id,title:n.title,content:n.content,created_at:n.createdAt,updated_at:n.updatedAt});if(error)throw error}
+    else if(body.action==='updateNote'&&body.note){const n=body.note;const{error}=await ctx.supabase.from('knowledge_notes').update({title:n.title,content:n.content,updated_at:n.updatedAt}).eq('id',n.id).eq('user_id',ctx.user.id);if(error)throw error}
+    else if(body.action==='deleteNote'&&body.id){const{error}=await ctx.supabase.from('knowledge_notes').delete().eq('id',body.id).eq('user_id',ctx.user.id);if(error)throw error}
+    else if(body.action==='addTransaction'&&body.transaction){const t=body.transaction;const{error}=await ctx.supabase.from('transactions').insert({id:t.id,user_id:ctx.user.id,description:t.description,amount:t.amount,type:t.type==='entrada'?'income':'expense',category:t.category,occurred_at:t.createdAt});if(error)throw error}
+    else if(body.action==='deleteTransaction'&&body.id){const{error}=await ctx.supabase.from('transactions').delete().eq('id',body.id).eq('user_id',ctx.user.id);if(error)throw error}
+    else if(body.action==='addFinancialGoal'&&body.financialGoal){const g=body.financialGoal;const{error}=await ctx.supabase.from('financial_goals').insert({id:g.id,user_id:ctx.user.id,title:g.title,target:g.target,current_amount:g.current});if(error)throw error}
+    else if(body.action==='updateFinancialGoal'&&body.financialGoal){const g=body.financialGoal;const{error}=await ctx.supabase.from('financial_goals').update({title:g.title,target:g.target,current_amount:g.current,updated_at:new Date().toISOString()}).eq('id',g.id).eq('user_id',ctx.user.id);if(error)throw error}
+    else if(body.action==='addWorkout'&&body.workout){const w=body.workout;const{error}=await ctx.supabase.from('workout_plans').insert({id:w.id,user_id:ctx.user.id,name:w.name,exercises:w.exercises as unknown as Json});if(error)throw error}
+    else if(body.action==='updateWorkout'&&body.workout){const w=body.workout;const{error}=await ctx.supabase.from('workout_plans').update({name:w.name,exercises:w.exercises as unknown as Json,updated_at:new Date().toISOString()}).eq('id',w.id).eq('user_id',ctx.user.id);if(error)throw error}
+    else if(body.action==='addAddiction'&&body.addiction){const a=body.addiction;const{error}=await ctx.supabase.from('addictions').insert({id:a.id,user_id:ctx.user.id,name:a.name,start_date:a.startDate.slice(0,10),daily_cost:a.dailyCost??null,replacement_plan:a.contingencyPlan as Json});if(error)throw error}
+    else if(body.action==='updateAddiction'&&body.addiction){const a=body.addiction;const{error}=await ctx.supabase.from('addictions').update({name:a.name,start_date:a.startDate.slice(0,10),daily_cost:a.dailyCost??null,replacement_plan:a.contingencyPlan as Json,updated_at:new Date().toISOString()}).eq('id',a.id).eq('user_id',ctx.user.id);if(error)throw error;const trigger=a.triggers.at(-1);if(trigger){const{error:eventError}=await ctx.supabase.from('addiction_events').upsert({id:trigger.id,user_id:ctx.user.id,addiction_id:a.id,event_type:trigger.resisted?'resisted':'urge',trigger:trigger.description??null,occurred_at:trigger.date},{onConflict:'id'});if(eventError)throw eventError}}
+    else return NextResponse.json({error:'Ação inválida'},{status:400});return NextResponse.json({ok:true})
+  }catch(error){return NextResponse.json({error:error instanceof Error?error.message:'Não foi possível salvar'},{status:500})}}
