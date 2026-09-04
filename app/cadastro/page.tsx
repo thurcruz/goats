@@ -19,7 +19,7 @@ export default function CadastroPage() {
     finally { setLoading(false) }
   }
   return <main className="auth-page"><AuthVisual/><section className="auth-panel">
-    <Link href="/" className="brand-mark auth-mobile-brand"><span>G</span><strong>GOATS</strong></Link>
+    <Link href="/" className="brand-mark auth-mobile-brand"><span>A</span><strong>APRUMO</strong></Link>
     <div className="auth-form-wrap signup-wrap"><p className="section-label">COMECE SUA JORNADA</p><h1>Construa sua<br/><em>melhor versão.</em></h1><p className="auth-subtitle">Leva menos de um minuto. A mudança vem depois.</p>
       <form onSubmit={signup} className="auth-form">
         <label>Como podemos te chamar?<div className="auth-field"><UserRound size={18}/><input required autoComplete="name" value={name} onChange={e=>setName(e.target.value)} placeholder="Seu nome"/></div></label>
@@ -28,7 +28,7 @@ export default function CadastroPage() {
         <button type="button" className="terms-check" onClick={()=>setAccepted(!accepted)}><span className={accepted?'checked':''}>{accepted&&<Check size={12}/>}</span><small>Eu concordo com os <u>Termos de Uso</u> e a <u>Política de Privacidade</u>.</small></button>
         <button className="auth-submit" disabled={loading}>{loading?'Criando conta...':'Criar minha conta'}<ArrowRight size={18}/></button>
         {message&&<p className="auth-message-text" role="alert">{message}</p>}
-      </form><p className="auth-switch">Já faz parte do GOATS? <Link href="/login">Entrar</Link></p>
+      </form><p className="auth-switch">Já faz parte do APRUMO? <Link href="/login">Entrar</Link></p>
     </div>
   </section></main>
 }

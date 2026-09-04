@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { ArrowUpRight, BookOpen, CalendarDays, Check, CircleDollarSign, Edit3, Flame, Settings, Shield, Target, Trophy, X } from 'lucide-react'
-import { useGoatStore } from '@/lib/store'
+import { useAprumoStore } from '@/lib/store'
 import { computeXp } from '@/lib/xp'
 
 const modules = [
@@ -14,7 +14,7 @@ const modules = [
 ]
 
 export default function PerfilPage() {
-  const { store, setUserName, setPurpose } = useGoatStore()
+  const { store, setUserName, setPurpose } = useAprumoStore()
   const [editing, setEditing] = useState(false); const [name, setName] = useState(store.userName); const [purpose, setLocalPurpose] = useState(store.purpose); const [saved, setSaved] = useState(false)
   const initials = store.userName.split(' ').map(part => part[0]).join('').slice(0, 2).toUpperCase()
   const consistency = store.metrics.totalCommitments ? Math.round(store.metrics.completedCommitments / store.metrics.totalCommitments * 100) : 0
@@ -40,7 +40,7 @@ export default function PerfilPage() {
   return <div className="page-wrap profile-page">
     <header className="profile-header"><div><p className="eyebrow">Minha evolução</p><h1 className="display mt-3 text-4xl font-semibold md:text-6xl">O reflexo da sua<br/><span>constância.</span></h1></div><Link href="/configuracoes" className="profile-settings"><Settings size={17}/> Configurações</Link></header>
     <section className="profile-identity surface">
-      <div className="profile-avatar"><span>{initials || 'G'}</span><div className="avatar-ring"/></div>
+      <div className="profile-avatar"><span>{initials || 'A'}</span><div className="avatar-ring"/></div>
       <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-3"><h2>{store.userName}</h2></div><p>{store.purpose || 'Defina o propósito que guia sua evolução.'}</p><div className="profile-meta"><span><CalendarDays size={14}/> Sua evolução em dados</span><span><Flame size={14}/> {store.metrics.streak} dias em movimento</span></div></div>
       <button className="profile-edit" onClick={beginEdit}><Edit3 size={16}/> Editar perfil</button>
     </section>

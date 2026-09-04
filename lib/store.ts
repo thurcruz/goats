@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { GoatStore, Task, Goal, Transaction, FinancialGoal, Addiction, WorkoutSession, Book, Note, MoodEntry, RepertoireItem, SleepEntry } from './types'
+import { AprumoStore, Task, Goal, Transaction, FinancialGoal, Addiction, WorkoutSession, Book, Note, MoodEntry, RepertoireItem, SleepEntry } from './types'
 
-const STORAGE_KEY = 'goat-system-store'
+const STORAGE_KEY = 'aprumo-store'
 const BACKEND_ENABLED = Boolean(
   process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 )
@@ -11,7 +11,7 @@ const BACKEND_ENABLED = Boolean(
 const yesterday = new Date()
 yesterday.setDate(yesterday.getDate() - 1)
 
-const initialData: GoatStore = {
+const initialData: AprumoStore = {
   metrics: { streak: 0, completedCommitments: 0, totalCommitments: 0, carriedCommitments: 0, completedGoals: 0, periodDays: 30 },
   userName: 'Arthur',
   purpose: 'Ser um empreendedor independente que tem saúde e liberdade para criar.',
@@ -185,19 +185,19 @@ const initialData: GoatStore = {
   ],
 }
 
-function loadStore(): GoatStore {
+function loadStore(): AprumoStore {
   if (typeof window === 'undefined') return initialData
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return initialData
-    const parsed = JSON.parse(raw) as Partial<GoatStore>
-    return { ...initialData, ...parsed, metrics: parsed.metrics ?? initialData.metrics } as GoatStore
+    const parsed = JSON.parse(raw) as Partial<AprumoStore>
+    return { ...initialData, ...parsed, metrics: parsed.metrics ?? initialData.metrics } as AprumoStore
   } catch {
     return initialData
   }
 }
 
-function saveStore(data: GoatStore) {
+function saveStore(data: AprumoStore) {
   if (typeof window === 'undefined') return
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
 }
@@ -215,11 +215,11 @@ function saveProfile(payload: { displayName?: string; purpose?: string }) {
   void fetch('/api/profile', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) }).catch(() => undefined)
 }
 
-async function loadCoreDomains(): Promise<Pick<GoatStore, 'goals' | 'tasks' | 'metrics'> | null> {
+async function loadCoreDomains(): Promise<Pick<AprumoStore, 'goals' | 'tasks' | 'metrics'> | null> {
   if (!BACKEND_ENABLED) return null
   const response = await fetch('/api/core', { cache: 'no-store' })
   if (!response.ok) return null
-  return response.json() as Promise<Pick<GoatStore, 'goals' | 'tasks' | 'metrics'>>
+  return response.json() as Promise<Pick<AprumoStore, 'goals' | 'tasks' | 'metrics'>>
 }
 
 async function syncCore(action: string, payload: { task?: Task; goal?: Goal; id?: string; eventDate?: string }) {
@@ -227,7 +227,7 @@ async function syncCore(action: string, payload: { task?: Task; goal?: Goal; id?
   await fetch('/api/core', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action, ...payload }) })
 }
 
-type DomainState = Pick<GoatStore, 'moods'|'books'|'notes'|'transactions'|'financialGoals'|'addictions'|'workouts'>
+type DomainState = Pick<AprumoStore, 'moods'|'books'|'notes'|'transactions'|'financialGoals'|'addictions'|'workouts'>
 async function loadDomains(): Promise<DomainState | null> {
   if (!BACKEND_ENABLED) return null
   const response = await fetch('/api/domains', { cache: 'no-store' })
@@ -235,8 +235,8 @@ async function loadDomains(): Promise<DomainState | null> {
 }
 async function syncDomain(action:string,payload:Record<string,unknown>){if(!BACKEND_ENABLED)return;await fetch('/api/domains',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action,...payload})})}
 
-export function useGoatStore() {
-  const [store, setStore] = useState<GoatStore>(initialData)
+export function useAprumoStore() {
+  const [store, setStore] = useState<AprumoStore>(initialData)
   const [hydrated, setHydrated] = useState(false)
 
   useEffect(() => {
@@ -257,7 +257,7 @@ export function useGoatStore() {
     return () => { active = false }
   }, [])
 
-  const update = useCallback((updater: (prev: GoatStore) => GoatStore) => {
+  const update = useCallback((updater: (prev: AprumoStore) => AprumoStore) => {
     setStore((prev) => {
       const next = updater(prev)
       saveStore(next)

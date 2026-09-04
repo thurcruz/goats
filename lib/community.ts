@@ -23,14 +23,14 @@ export const circles: Circle[] = [
 
 export const labInProgress: LabItem[] = [
   { label: 'Novo sistema de conquistas', pct: 72 },
-  { label: 'Cabra no WhatsApp', pct: 54 },
+  { label: 'Apri no WhatsApp', pct: 54 },
   { label: 'Relatório mensal', pct: 87 },
 ]
 export const labLaunched = ['Doses', 'Círculos', 'Foco 2.0']
 
 export const voteFeatures: VoteFeature[] = [
-  { id: 'space', emoji: '💻', title: 'Goats Space', desc: 'Workspace para trabalho e estudo: Kanban, projetos, tarefas e sessões de foco.', votes: 842 },
-  { id: 'coworking', emoji: '🟢', title: 'Coworking', desc: 'Salas de foco ao vivo. Estude e trabalhe junto de outros Goats.', votes: 1103 },
+  { id: 'space', emoji: '💻', title: 'Aprumo Space', desc: 'Workspace para trabalho e estudo: Kanban, projetos, tarefas e sessões de foco.', votes: 842 },
+  { id: 'coworking', emoji: '🟢', title: 'Coworking', desc: 'Salas de foco ao vivo. Estude e trabalhe junto de outros Aprumados.', votes: 1103 },
   { id: 'nutricao', emoji: '🥗', title: 'Nutrição', desc: 'Expandir Saúde: alimentação, refeições, água e macros.', votes: 617 },
   { id: 'repertorio', emoji: '🧠', title: 'Repertório+', desc: 'Salvar artigos, vídeos, links e conteúdos externos.', votes: 589 },
   { id: 'circulos', emoji: '👥', title: 'Círculos+', desc: 'Desafios privados, metas coletivas, Kanban compartilhado e ranking.', votes: 690 },
@@ -38,7 +38,7 @@ export const voteFeatures: VoteFeature[] = [
 export const seasonVotes = 3841
 
 export interface CommunityState { likes: string[]; joined: string[]; vote: string | null; posts: FeedPost[] }
-const KEY = 'goats-community'
+const KEY = 'aprumo-community'
 const empty: CommunityState = { likes: [], joined: [], vote: null, posts: [] }
 
 export function loadCommunity(): CommunityState {

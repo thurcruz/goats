@@ -10,7 +10,7 @@ const tabs = [
   { id: 'conta' as Tab, label: 'Conta', icon: UserRound },
   { id: 'pagamentos' as Tab, label: 'Créditos', icon: WalletCards },
   { id: 'notificacoes' as Tab, label: 'Notificações', icon: Bell },
-  { id: 'ia' as Tab, label: 'Goat AI', icon: Bot },
+  { id: 'ia' as Tab, label: 'Apri', icon: Bot },
   { id: 'privacidade' as Tab, label: 'Privacidade', icon: ShieldCheck },
   { id: 'aparencia' as Tab, label: 'Aparência', icon: Moon },
 ]
@@ -27,7 +27,7 @@ export default function ConfiguracoesPage() {
   const [tab, setTab] = useState<Tab>('conta')
   const [values, setValues] = useState({ reminders: true, weekly: false, email: true, tasks: true, goals: true, mood: false })
   const [saved, setSaved] = useState(false)
-  const [theme, setTheme] = useState<'dark'|'light'>(() => typeof window === 'undefined' ? 'dark' : (localStorage.getItem('goats-theme') as 'dark'|'light') ?? 'dark')
+  const [theme, setTheme] = useState<'dark'|'light'>(() => typeof window === 'undefined' ? 'dark' : (localStorage.getItem('aprumo-theme') as 'dark'|'light') ?? 'dark')
   const [account, setAccount] = useState({ name: 'Sua conta', email: 'E-mail protegido' })
   const [billing, setBilling] = useState<{ balance: number; checkoutUrl: string | null; checkoutEmail: string | null } | null>(null)
   const [emailModal, setEmailModal] = useState(false)
@@ -47,10 +47,10 @@ export default function ConfiguracoesPage() {
     }).catch(() => undefined)
     return () => { active = false }
   }, [])
-  function chooseTheme(next: 'dark'|'light') { setTheme(next); localStorage.setItem('goats-theme', next); window.dispatchEvent(new Event('goats-theme-change')) }
+  function chooseTheme(next: 'dark'|'light') { setTheme(next); localStorage.setItem('aprumo-theme', next); window.dispatchEvent(new Event('aprumo-theme-change')) }
   const flip = (key: keyof typeof values) => setValues(current => ({ ...current, [key]: !current[key] }))
   async function save() {
-    localStorage.setItem('goats-settings', JSON.stringify({ reminders: values.reminders, weekly: values.weekly, email: values.email }))
+    localStorage.setItem('aprumo-settings', JSON.stringify({ reminders: values.reminders, weekly: values.weekly, email: values.email }))
     try { await fetch('/api/profile', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ aiPermissions: { tasks: values.tasks, goals: values.goals, books: true, moods: values.mood, finance: false, antivicio: false } }) }) } catch { /* Local notification settings remain saved. */ }
     setSaved(true); window.setTimeout(() => setSaved(false), 1800)
   }
@@ -64,7 +64,7 @@ export default function ConfiguracoesPage() {
       ])
       const payload = { exportedAt: new Date().toISOString(), profile: profile?.profile ?? null, email: profile?.email ?? null, ...(core ?? {}), ...(domains ?? {}) }
       const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }))
-      const link = document.createElement('a'); link.href = url; link.download = `goats-dados-${new Date().toISOString().slice(0, 10)}.json`; link.click(); URL.revokeObjectURL(url)
+      const link = document.createElement('a'); link.href = url; link.download = `aprumo-dados-${new Date().toISOString().slice(0, 10)}.json`; link.click(); URL.revokeObjectURL(url)
     } catch { /* Exportação indisponível offline. */ }
   }
   function openEmailModal() { setNewEmail(''); setEmailMsg(''); setEmailModal(true) }
@@ -83,7 +83,7 @@ export default function ConfiguracoesPage() {
   }
 
   return <div className="page-wrap settings-v2">
-    <header className="settings-v2-header"><div><p className="eyebrow">Sua experiência</p><h1 className="display">Configurações</h1><p>Personalize o GOATS e controle seus dados.</p></div><button className={`settings-save ${saved ? 'saved' : ''}`} onClick={save}>{saved ? <><Check size={16}/> Alterações salvas</> : 'Salvar alterações'}</button></header>
+    <header className="settings-v2-header"><div><p className="eyebrow">Sua experiência</p><h1 className="display">Configurações</h1><p>Personalize o APRUMO e controle seus dados.</p></div><button className={`settings-save ${saved ? 'saved' : ''}`} onClick={save}>{saved ? <><Check size={16}/> Alterações salvas</> : 'Salvar alterações'}</button></header>
 
     <div className="settings-v2-shell">
       <nav className="settings-v2-nav" aria-label="Seções das configurações">
@@ -93,13 +93,13 @@ export default function ConfiguracoesPage() {
       </nav>
 
       <section className="settings-v2-panel">
-        {tab === 'conta' && <><div className="settings-panel-title"><span><UserRound size={20}/></span><div><h2>Conta</h2><p>Informações pessoais e segurança de acesso.</p></div></div><div className="settings-profile-card"><div className="settings-avatar">{account.name.slice(0,2).toUpperCase()}</div><div><strong>{account.name}</strong><p>Sua identidade dentro do GOATS.</p></div><Link href="/perfil">Editar perfil</Link></div><div className="preference-list"><PreferenceRow title="Endereço de e-mail" description={account.email}><button className="text-action" onClick={openEmailModal}><Mail size={15}/> Alterar</button></PreferenceRow><PreferenceRow title="Senha" description="Protegida pelo Supabase Auth"><Link href="/recuperar-senha" className="text-action"><LockKeyhole size={15}/> Redefinir</Link></PreferenceRow><PreferenceRow title="Idioma da conta" description="Português (Brasil)"><button className="text-action"><Globe2 size={15}/> Alterar</button></PreferenceRow></div></>}
+        {tab === 'conta' && <><div className="settings-panel-title"><span><UserRound size={20}/></span><div><h2>Conta</h2><p>Informações pessoais e segurança de acesso.</p></div></div><div className="settings-profile-card"><div className="settings-avatar">{account.name.slice(0,2).toUpperCase()}</div><div><strong>{account.name}</strong><p>Sua identidade dentro do APRUMO.</p></div><Link href="/perfil">Editar perfil</Link></div><div className="preference-list"><PreferenceRow title="Endereço de e-mail" description={account.email}><button className="text-action" onClick={openEmailModal}><Mail size={15}/> Alterar</button></PreferenceRow><PreferenceRow title="Senha" description="Protegida pelo Supabase Auth"><Link href="/recuperar-senha" className="text-action"><LockKeyhole size={15}/> Redefinir</Link></PreferenceRow><PreferenceRow title="Idioma da conta" description="Português (Brasil)"><button className="text-action"><Globe2 size={15}/> Alterar</button></PreferenceRow></div></>}
 
-        {tab === 'pagamentos' && <><div className="settings-panel-title"><span><WalletCards size={20}/></span><div><h2>Créditos GOATS</h2><p>Seu saldo para usar a Goat AI e automações.</p></div></div><div className="billing-balance"><div><small>SALDO DISPONÍVEL</small><strong>{billing ? billing.balance.toLocaleString('pt-BR') : '—'}</strong><p>créditos</p></div><CreditCard size={30}/></div><div className="preference-list"><PreferenceRow title="Comprar créditos" description={`Use no checkout o mesmo e-mail da sua conta: ${billing?.checkoutEmail ?? account.email}`}>{billing?.checkoutUrl ? <a className="billing-buy" href={billing.checkoutUrl} target="_blank" rel="noreferrer">Ir para a Cakto</a> : <span className="billing-unavailable">Configure o checkout</span>}</PreferenceRow><PreferenceRow title="Liberação automática" description="Após a aprovação, a Cakto avisa o GOATS e o saldo entra automaticamente."><ShieldCheck size={18} color="var(--energy)"/></PreferenceRow></div></>}
+        {tab === 'pagamentos' && <><div className="settings-panel-title"><span><WalletCards size={20}/></span><div><h2>Créditos APRUMO</h2><p>Seu saldo para usar a Apri e automações.</p></div></div><div className="billing-balance"><div><small>SALDO DISPONÍVEL</small><strong>{billing ? billing.balance.toLocaleString('pt-BR') : '—'}</strong><p>créditos</p></div><CreditCard size={30}/></div><div className="preference-list"><PreferenceRow title="Comprar créditos" description={`Use no checkout o mesmo e-mail da sua conta: ${billing?.checkoutEmail ?? account.email}`}>{billing?.checkoutUrl ? <a className="billing-buy" href={billing.checkoutUrl} target="_blank" rel="noreferrer">Ir para a Cakto</a> : <span className="billing-unavailable">Configure o checkout</span>}</PreferenceRow><PreferenceRow title="Liberação automática" description="Após a aprovação, a Cakto avisa o APRUMO e o saldo entra automaticamente."><ShieldCheck size={18} color="var(--energy)"/></PreferenceRow></div></>}
 
-        {tab === 'notificacoes' && <><div className="settings-panel-title"><span><Bell size={20}/></span><div><h2>Notificações</h2><p>Escolha quando o GOATS pode chamar sua atenção.</p></div></div><div className="preference-list"><PreferenceRow title="Lembretes do dia" description="Compromissos prioritários e hábitos programados."><Toggle label="Lembretes do dia" value={values.reminders} onChange={() => flip('reminders')}/></PreferenceRow><PreferenceRow title="Resumo semanal" description="Uma leitura simples da sua evolução toda segunda-feira."><Toggle label="Resumo semanal" value={values.weekly} onChange={() => flip('weekly')}/></PreferenceRow><PreferenceRow title="Novidades por e-mail" description="Atualizações importantes do produto, sem excesso."><Toggle label="Novidades por e-mail" value={values.email} onChange={() => flip('email')}/></PreferenceRow></div></>}
+        {tab === 'notificacoes' && <><div className="settings-panel-title"><span><Bell size={20}/></span><div><h2>Notificações</h2><p>Escolha quando o APRUMO pode chamar sua atenção.</p></div></div><div className="preference-list"><PreferenceRow title="Lembretes do dia" description="Compromissos prioritários e hábitos programados."><Toggle label="Lembretes do dia" value={values.reminders} onChange={() => flip('reminders')}/></PreferenceRow><PreferenceRow title="Resumo semanal" description="Uma leitura simples da sua evolução toda segunda-feira."><Toggle label="Resumo semanal" value={values.weekly} onChange={() => flip('weekly')}/></PreferenceRow><PreferenceRow title="Novidades por e-mail" description="Atualizações importantes do produto, sem excesso."><Toggle label="Novidades por e-mail" value={values.email} onChange={() => flip('email')}/></PreferenceRow></div></>}
 
-        {tab === 'ia' && <><div className="settings-panel-title"><span><Bot size={20}/></span><div><h2>Contexto da Goat AI</h2><p>Escolha quais informações podem apoiar seus insights.</p></div></div><div className="safe-banner"><ShieldCheck size={18}/><div><strong>Você está no controle.</strong><p>Nenhum dado é publicado ou compartilhado automaticamente.</p></div></div><div className="preference-list"><PreferenceRow title="Tarefas e hábitos" description="Padrões de execução, constância e repasses."><Toggle label="Contexto de tarefas" value={values.tasks} onChange={() => flip('tasks')}/></PreferenceRow><PreferenceRow title="Metas" description="Relação entre suas ações e o progresso de longo prazo."><Toggle label="Contexto de metas" value={values.goals} onChange={() => flip('goals')}/></PreferenceRow><PreferenceRow title="Humor e emocional" description="Relação entre energia, emoções e rotina."><Toggle label="Contexto emocional" value={values.mood} onChange={() => flip('mood')}/></PreferenceRow></div></>}
+        {tab === 'ia' && <><div className="settings-panel-title"><span><Bot size={20}/></span><div><h2>Contexto da Apri</h2><p>Escolha quais informações podem apoiar seus insights.</p></div></div><div className="safe-banner"><ShieldCheck size={18}/><div><strong>Você está no controle.</strong><p>Nenhum dado é publicado ou compartilhado automaticamente.</p></div></div><div className="preference-list"><PreferenceRow title="Tarefas e hábitos" description="Padrões de execução, constância e repasses."><Toggle label="Contexto de tarefas" value={values.tasks} onChange={() => flip('tasks')}/></PreferenceRow><PreferenceRow title="Metas" description="Relação entre suas ações e o progresso de longo prazo."><Toggle label="Contexto de metas" value={values.goals} onChange={() => flip('goals')}/></PreferenceRow><PreferenceRow title="Humor e emocional" description="Relação entre energia, emoções e rotina."><Toggle label="Contexto emocional" value={values.mood} onChange={() => flip('mood')}/></PreferenceRow></div></>}
 
         {tab === 'privacidade' && <><div className="settings-panel-title"><span><ShieldCheck size={20}/></span><div><h2>Privacidade e dados</h2><p>Seus dados são privados por padrão.</p></div></div><div className="privacy-status"><span><ShieldCheck size={23}/></span><div><small>STATUS DA CONTA</small><strong>Todos os seus dados estão privados</strong><p>Nada é publicado sem uma ação explícita sua.</p></div></div><div className="preference-list"><PreferenceRow title="Baixar meus dados" description="Exporte uma cópia das suas informações."><button className="text-action" onClick={exportData}><Download size={15}/> Exportar</button></PreferenceRow><PreferenceRow title="Dados armazenados" description="Veja como suas informações são utilizadas."><button className="text-action"><Database size={15}/> Consultar</button></PreferenceRow></div></>}
 

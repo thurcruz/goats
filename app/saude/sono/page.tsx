@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { ArrowLeft, Moon } from 'lucide-react'
-import { useGoatStore } from '@/lib/store'
+import { useAprumoStore } from '@/lib/store'
 import type { MoodLevel } from '@/lib/types'
 
 const qualities: { level: MoodLevel; label: string }[] = [
@@ -15,7 +15,7 @@ const qualities: { level: MoodLevel; label: string }[] = [
 ]
 
 export default function SonoPage() {
-  const { store, addSleep } = useGoatStore()
+  const { store, addSleep } = useAprumoStore()
   const [hours, setHours] = useState('7.5')
   const [quality, setQuality] = useState<MoodLevel>(4)
   const [note, setNote] = useState('')

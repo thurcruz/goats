@@ -144,7 +144,7 @@ export interface RepertoireItem {
   createdAt: string
 }
 
-export interface GoatStore {
+export interface AprumoStore {
   tasks: Task[]
   goals: Goal[]
   transactions: Transaction[]

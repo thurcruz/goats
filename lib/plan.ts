@@ -13,9 +13,9 @@ export interface PlanState {
 }
 
 /**
- * Goats+ é baseado em créditos (Cakto). Não existe uma flag booleana de
+ * Aprumo+ é baseado em créditos (Cakto). Não existe uma flag booleana de
  * assinatura no perfil, então tratamos um saldo de créditos positivo como
- * acesso Goats+ ativo — o melhor sinal disponível hoje. Degrada para 'free'
+ * acesso Aprumo+ ativo — o melhor sinal disponível hoje. Degrada para 'free'
  * quando offline ou sem backend.
  */
 export function usePlan(): PlanState {

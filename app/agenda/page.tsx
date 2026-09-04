@@ -2,13 +2,13 @@
 
 import { useMemo, useState } from 'react'
 import { CalendarDays, Check, Clock3, Plus, Repeat2, X } from 'lucide-react'
-import { useGoatStore } from '@/lib/store'
+import { useAprumoStore } from '@/lib/store'
 import type { TaskCategory } from '@/lib/types'
 
 const iso = (date: Date) => date.toISOString().slice(0, 10)
 
 export default function AgendaPage() {
-  const { store, addTask, updateTask } = useGoatStore()
+  const { store, addTask, updateTask } = useAprumoStore()
   const [selected, setSelected] = useState(iso(new Date()))
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState('')

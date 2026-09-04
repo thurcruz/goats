@@ -1,6 +1,6 @@
-# E-mails transacionais do GOATS (Auth)
+# E-mails transacionais do APRUMO (Auth)
 
-Templates branded para os e-mails de autenticação do Supabase, com identidade GOATS
+Templates branded para os e-mails de autenticação do Supabase, com identidade APRUMO
 (fundo escuro, lima `#d0e027`, título serifado). Renderizam bem em Gmail, Apple Mail e
 Outlook (HTML table-based, estilos inline).
 
@@ -11,10 +11,10 @@ template correspondente e ajuste o *Subject*:
 
 | Arquivo | Template no dashboard | Subject sugerido |
 | --- | --- | --- |
-| `confirmation.html` | Confirm signup | `Confirme seu e-mail — GOATS` |
-| `recovery.html` | Reset password | `Redefinir sua senha — GOATS` |
-| `magic_link.html` | Magic Link | `Seu link de acesso — GOATS` |
-| `email_change.html` | Change Email Address | `Confirme seu novo e-mail — GOATS` |
+| `confirmation.html` | Confirm signup | `Confirme seu e-mail — APRUMO` |
+| `recovery.html` | Reset password | `Redefinir sua senha — APRUMO` |
+| `magic_link.html` | Magic Link | `Seu link de acesso — APRUMO` |
+| `email_change.html` | Change Email Address | `Confirme seu novo e-mail — APRUMO` |
 
 > Se você adotar o Supabase CLI depois, aponte estes arquivos em `supabase/config.toml`
 > na seção `[auth.email.template.*]` (`content_path`) para versionar tudo pelo repo.
@@ -42,14 +42,14 @@ Supabase é limitado (poucos e-mails/hora) e usa remetente genérico.
    - User: `resend` · Password: uma **API Key** do Resend (*API Keys → Create*).
 4. **Supabase** → *Project Settings → Authentication → SMTP Settings* → *Enable Custom SMTP*:
    - Sender email: `ola@seudominio.com` (no domínio verificado)
-   - Sender name: `GOATS`
+   - Sender name: `APRUMO`
    - Host/Port/User/Password: os do passo 3.
 5. **Rate limits**: *Authentication → Rate Limits* — aumente o de e-mails agora que o
    envio é próprio (o default é baixo).
 6. **URLs** (se ainda não fez): *Authentication → URL Configuration* → Site URL e
    Redirect `…/auth/callback` (ver `BACKEND_SETUP.md`).
 
-Pronto: os 4 e-mails passam a sair como `GOATS <ola@seudominio.com>`, branded e sem cair
+Pronto: os 4 e-mails passam a sair como `APRUMO <ola@seudominio.com>`, branded e sem cair
 em spam (graças ao SPF/DKIM/DMARC do seu domínio).
 
 ## Trocar o wordmark por um logo em imagem
@@ -57,7 +57,7 @@ em spam (graças ao SPF/DKIM/DMARC do seu domínio).
 Cada template tem, no topo, um comentário `<!-- Logo em imagem: … -->`. Hospede um PNG
 (~130px de largura, fundo transparente) em uma URL HTTPS pública — por exemplo
 `public/logo-email.png` no deploy (`https://SEU-DOMINIO/logo-email.png`) — e substitua o
-bloco do "G + GOATS" pela tag `<img>` comentada. Use sempre URL absoluta: e-mail não
+bloco do "G + APRUMO" pela tag `<img>` comentada. Use sempre URL absoluta: e-mail não
 carrega assets relativos.
 
 ## Testar

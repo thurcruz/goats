@@ -10,10 +10,10 @@ const publicRoutes = new Set(['/', '/login', '/cadastro', '/recuperar-senha', '/
 
 export default function AppChrome({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-    const applyTheme = () => document.documentElement.dataset.theme = localStorage.getItem('goats-theme') ?? 'dark'
+    const applyTheme = () => document.documentElement.dataset.theme = localStorage.getItem('aprumo-theme') ?? 'dark'
     applyTheme()
-    window.addEventListener('goats-theme-change', applyTheme)
-    return () => window.removeEventListener('goats-theme-change', applyTheme)
+    window.addEventListener('aprumo-theme-change', applyTheme)
+    return () => window.removeEventListener('aprumo-theme-change', applyTheme)
   }, [])
   const isPublic = publicRoutes.has(usePathname())
   if (isPublic) return <>{children}</>

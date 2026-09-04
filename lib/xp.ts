@@ -1,4 +1,4 @@
-import type { GoatStore } from './types'
+import type { AprumoStore } from './types'
 
 export interface Achievement { id: string; label: string; desc: string; icon: string; unlocked: boolean }
 export interface XpSummary { xp: number; level: number; intoLevel: number; perLevel: number; achievements: Achievement[] }
@@ -6,7 +6,7 @@ export interface XpSummary { xp: number; level: number; intoLevel: number; perLe
 const PER_LEVEL = 250
 
 /** Deriva XP, nível e conquistas a partir dos dados já existentes no store (não persiste nada). */
-export function computeXp(store: GoatStore): XpSummary {
+export function computeXp(store: AprumoStore): XpSummary {
   const completedTasks = store.tasks.filter(task => task.completed).length
   const readBooks = store.books.filter(book => book.status === 'lido').length
   const doneWorkouts = store.workouts.filter(workout => workout.completedAt).length

@@ -9,7 +9,7 @@ const tabs = [
   { id: 'mural', label: 'Mural' },
   { id: 'desafios', label: 'Desafios' },
   { id: 'circulos', label: 'Círculos' },
-  { id: 'lab', label: 'GOATS Lab' },
+  { id: 'lab', label: 'Aprumo Lab' },
   { id: 'votacao', label: 'Votação' },
 ] as const
 type TabId = (typeof tabs)[number]['id']
@@ -39,9 +39,9 @@ export default function Comunidade() {
 
   return <div className="page-wrap">
     <header className="mb-8">
-      <p className="eyebrow">Os Goats</p>
+      <p className="eyebrow">Os Aprumados</p>
       <h1 className="display mt-3 max-w-2xl text-4xl font-semibold md:text-6xl">Evolua por você.<br/>Não sozinho.</h1>
-      <p className="muted mt-4 max-w-xl">CMMNTY está no nome. Aqui você acompanha, desafia e constrói a Goats junto de quem também está no jogo.</p>
+      <p className="muted mt-4 max-w-xl">Comunidade não é um extra. Aqui você acompanha, desafia e constrói o Aprumo junto de quem também está no jogo.</p>
     </header>
 
     <nav className="mb-7 flex gap-2 overflow-x-auto pb-1">
@@ -70,7 +70,7 @@ export default function Comunidade() {
           })}
         </main>
         <aside className="space-y-4">
-          <section className="surface p-6"><UsersRound className="text-energy"/><h2 className="mt-4 text-lg font-semibold">Você não está sozinho</h2><p className="muted mt-2 text-sm">827 Goats priorizaram o essencial hoje. Siga amigos e acompanhe a evolução deles.</p></section>
+          <section className="surface p-6"><UsersRound className="text-energy"/><h2 className="mt-4 text-lg font-semibold">Você não está sozinho</h2><p className="muted mt-2 text-sm">827 Aprumados priorizaram o essencial hoje. Siga amigos e acompanhe a evolução deles.</p></section>
           <section className="surface p-6"><Flame className="text-energy"/><h2 className="mt-4 font-semibold">Desafio da semana</h2><p className="muted mt-2 text-sm">{challenge.title} — {challenge.participants.toLocaleString('pt-BR')} participantes.</p><button onClick={() => setTab('desafios')} className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-energy">Ver desafio <ChevronRight size={15}/></button></section>
         </aside>
       </div>}
@@ -107,7 +107,7 @@ export default function Comunidade() {
       {tab === 'lab' && <div className="grid gap-5 lg:grid-cols-2">
         <section className="surface p-6">
           <div className="flex items-center gap-2"><FlaskConical className="text-energy" size={18}/><h2 className="font-semibold">Em desenvolvimento</h2></div>
-          <p className="muted mt-2 text-sm">A Goats está sendo construída em público. Acompanhe o que vem por aí.</p>
+          <p className="muted mt-2 text-sm">O Aprumo está sendo construído em público. Acompanhe o que vem por aí.</p>
           <div className="mt-5 space-y-4">{labInProgress.map(item => <div key={item.label}><div className="mb-1.5 flex justify-between text-sm"><span>{item.label}</span><span className="muted">{item.pct}%</span></div><div className="h-2 overflow-hidden rounded-full bg-white/7"><div className="h-full rounded-full bg-energy" style={{ width: `${item.pct}%` }}/></div></div>)}</div>
         </section>
         <section className="surface p-6">
@@ -118,9 +118,9 @@ export default function Comunidade() {
 
       {tab === 'votacao' && <div className="space-y-5">
         <section className="surface p-6">
-          <div className="flex items-center gap-2"><Vote className="text-energy" size={18}/><p className="eyebrow">Próxima feature Goats</p></div>
+          <div className="flex items-center gap-2"><Vote className="text-energy" size={18}/><p className="eyebrow">Próxima feature Aprumo</p></div>
           <h2 className="mt-2 text-xl font-semibold">Você decide o próximo ciclo</h2>
-          <p className="muted mt-2 text-sm">1 Goat = 1 voto · {totalVotes.toLocaleString('pt-BR')} votos nesta temporada. Free também vota — participar da construção não é benefício premium.</p>
+          <p className="muted mt-2 text-sm">1 Aprumado = 1 voto · {totalVotes.toLocaleString('pt-BR')} votos nesta temporada. Free também vota — participar da construção não é benefício premium.</p>
         </section>
         <section className="grid gap-3">
           {voteFeatures.map(feature => {

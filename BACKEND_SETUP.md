@@ -1,4 +1,4 @@
-# Backend do GOATS — Supabase
+# Backend do APRUMO — Supabase
 
 ## O que já está integrado
 
@@ -7,13 +7,13 @@
 - Sessão segura em cookies.
 - APIs autenticadas por domínio normalizado: `/api/core` (metas e compromissos), `/api/domains` (finanças, hábitos, humor, conhecimento) e `/api/profile` (identidade e permissões da IA).
 - Preferência offline: o app continua utilizável se o backend estiver indisponível.
-- Campos de vínculo com WhatsApp e permissões granulares da Goat AI.
+- Campos de vínculo com WhatsApp e permissões granulares da Apri.
 - Log estrutural para auditoria futura das ações da IA.
 
 ## Ativação
 
 1. Crie um projeto em https://supabase.com/dashboard.
-2. No SQL Editor, execute `supabase/migrations/001_goats_foundation.sql`.
+2. No SQL Editor, execute `supabase/migrations/001_goats_foundation.sql` (nome de arquivo histórico — migrations aplicadas não são renomeadas).
 3. Copie `.env.example` para `.env.local`.
 4. Preencha a URL e a chave pública do projeto.
 5. Em Authentication > URL Configuration, adicione:
@@ -33,4 +33,4 @@ Observação: a tabela `user_state` (JSONB) foi a camada de transição original
 - A chave `SUPABASE_SERVICE_ROLE_KEY` nunca deve chegar ao browser.
 - Rotas de API são tratadas como endpoints públicos e sempre verificam o usuário.
 - RLS impede que uma sessão leia ou altere dados de outra conta.
-- O log de auditoria não aceita inserções diretas do cliente; futuras ações da Goat AI devem ser registradas pelo backend confiável.
+- O log de auditoria não aceita inserções diretas do cliente; futuras ações da Apri devem ser registradas pelo backend confiável.
