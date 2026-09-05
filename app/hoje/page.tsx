@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ArrowLeft, ArrowRight, CalendarDays, Check, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, Circle, PencilLine, Pin, Plus, Star, Timer, Trash2, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CalendarDays, Check, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, Circle, GripVertical, PencilLine, Pin, Plus, Star, Timer, Trash2, X } from 'lucide-react'
 import { useAprumoStore } from '@/lib/store'
 import { dayBlocks, type DayBlock, type Task } from '@/lib/types'
 import { PlusGate } from '@/components/plus/PlusGate'
@@ -91,7 +91,7 @@ export default function HojePage() {
   type Drag = { taskId: string; x: number; y: number; over: DayBlock | null }
   const [drag, setDrag] = useState<Drag | null>(null)
   const dragRef = useRef<Drag | null>(null)
-  const pending = useRef<{ taskId: string; x: number; y: number; touch: boolean; timer?: number } | null>(null)
+  const pending = useRef<{ taskId: string; x: number; y: number } | null>(null)
   const blockEls = useRef(new Map<DayBlock, HTMLElement>())
   const isDragging = drag !== null
 
@@ -105,12 +105,22 @@ export default function HojePage() {
   }
   const beginDrag = (taskId: string, x: number, y: number) => applyDrag({ taskId, x, y, over: hitTest(x, y) })
 
+  /**
+   * Arrasto a partir do corpo da linha: só no mouse.
+   * No toque o corpo precisa continuar rolando a página, e não é possível
+   * "desfazer" a rolagem depois que o navegador assume o gesto — por isso o
+   * toque arrasta pela alça, que tem touch-action: none.
+   */
   const startPress = (event: React.PointerEvent, taskId: string) => {
+    if (event.pointerType !== 'mouse' || event.button !== 0) return
+    pending.current = { taskId, x: event.clientX, y: event.clientY }
+  }
+
+  /** Alça: arrasta imediatamente, em qualquer tipo de ponteiro. */
+  const startHandle = (event: React.PointerEvent, taskId: string) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return
-    const touch = event.pointerType === 'touch'
-    const info: NonNullable<typeof pending.current> = { taskId, x: event.clientX, y: event.clientY, touch }
-    if (touch) info.timer = window.setTimeout(() => beginDrag(taskId, info.x, info.y), 350)
-    pending.current = info
+    event.stopPropagation()
+    beginDrag(taskId, event.clientX, event.clientY)
   }
 
   useEffect(() => {
@@ -118,15 +128,12 @@ export default function HojePage() {
       const start = pending.current
       if (!dragRef.current && start) {
         const dx = Math.abs(event.clientX - start.x), dy = Math.abs(event.clientY - start.y)
-        // No toque, mover antes do tempo significa rolagem: desiste do arrasto.
-        if (start.touch) { if (dx > 8 || dy > 8) { window.clearTimeout(start.timer); pending.current = null } }
-        else if (dx > 6 || dy > 6) beginDrag(start.taskId, event.clientX, event.clientY)
+        if (dx > 6 || dy > 6) beginDrag(start.taskId, event.clientX, event.clientY)
       }
       const current = dragRef.current
       if (current) applyDrag({ ...current, x: event.clientX, y: event.clientY, over: hitTest(event.clientX, event.clientY) })
     }
     const finish = () => {
-      if (pending.current?.timer) window.clearTimeout(pending.current.timer)
       pending.current = null
       const current = dragRef.current
       if (current?.over) {
@@ -227,8 +234,13 @@ export default function HojePage() {
               const beingDragged = drag?.taskId === task.id
               return <div key={task.id}
                 onPointerDown={event => { if (!editing) startPress(event, task.id) }}
-                className="relative flex touch-pan-y items-center gap-2 rounded-2xl border border-white/[.07] bg-white/[.025] p-3 transition select-none"
+                className="relative flex select-none items-center gap-2 rounded-2xl border border-white/[.07] bg-white/[.025] p-2.5 transition"
                 style={{ opacity: beingDragged ? .4 : dimmed ? .35 : 1, borderColor: essential && !task.completed ? 'rgba(208,224,39,.4)' : undefined }}>
+                <span
+                  onPointerDown={event => { if (!editing) startHandle(event, task.id) }}
+                  role="button" tabIndex={-1} aria-label="Arrastar tarefa"
+                  className="muted -ml-1 shrink-0 cursor-grab p-1 active:cursor-grabbing"
+                  style={{ touchAction: 'none' }}><GripVertical size={15}/></span>
                 <button onPointerDown={event => event.stopPropagation()} onClick={() => toggle(task)} aria-label={task.completed ? 'Desmarcar' : 'Concluir'} className="grid h-6 w-6 shrink-0 place-items-center rounded-full border" style={{ background: task.completed ? 'var(--energy)' : 'transparent', borderColor: task.completed ? 'var(--energy)' : 'rgba(255,255,255,.18)', color: '#11130f' }}>{task.completed && <Check size={14}/>}</button>
 
                 {editing
