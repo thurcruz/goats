@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ArrowLeft, ArrowRight, CalendarDays, Check, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, Circle, Pin, Plus, Star, Timer, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CalendarDays, Check, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, Circle, PencilLine, Pin, Plus, Star, Timer, Trash2, X } from 'lucide-react'
 import { useAprumoStore } from '@/lib/store'
 import { dayBlocks, type DayBlock, type Task } from '@/lib/types'
 import { PlusGate } from '@/components/plus/PlusGate'
@@ -25,11 +25,13 @@ function weekStart(date: Date) {
 }
 
 export default function HojePage() {
-  const { store, addTask, updateTask, carryTask, addMood } = useAprumoStore()
+  const { store, addTask, updateTask, deleteTask, carryTask, addMood } = useAprumoStore()
   const today = iso(new Date())
   const [selected, setSelected] = useState(today)
   const [drafts, setDrafts] = useState<Record<string, string>>({})
   const [openMenu, setOpenMenu] = useState<string|null>(null)
+  const [renaming, setRenaming] = useState<string|null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<string|null>(null)
   const [dragging, setDragging] = useState<string|null>(null)
   const [minimalDay, setMinimalDay] = useState(false)
   const [monthOpen, setMonthOpen] = useState(false)
@@ -77,6 +79,12 @@ export default function HojePage() {
   const toggleFixed = (task: Task) => updateTask(task.category === 'fixa'
     ? { ...task, category: 'hoje', scheduledDate: selected }
     : { ...task, category: 'fixa', scheduledDate: undefined }, selected)
+  const rename = (task: Task, value: string) => {
+    const title = value.trim()
+    setRenaming(null)
+    if (title.length >= 2 && title !== task.title) updateTask({ ...task, title }, selected)
+  }
+  const closeMenu = () => { setOpenMenu(null); setConfirmDelete(null) }
 
   const monthDays = useMemo(() => {
     const first = new Date(monthCursor.getFullYear(), monthCursor.getMonth(), 1)
@@ -147,24 +155,35 @@ export default function HojePage() {
               const dimmed = minimalDay && task.priority !== 1 && !task.completed
               const essential = task.priority === 1
               const fixed = task.category === 'fixa'
-              return <div key={task.id} draggable onDragStart={() => setDragging(task.id)} onDragEnd={() => setDragging(null)}
+              const editing = renaming === task.id
+              return <div key={task.id} draggable={!editing} onDragStart={() => setDragging(task.id)} onDragEnd={() => setDragging(null)}
                 className="relative flex items-center gap-2 rounded-2xl border border-white/[.07] bg-white/[.025] p-3 transition"
                 style={{ opacity: dimmed ? .35 : 1, borderColor: essential && !task.completed ? 'rgba(208,224,39,.4)' : undefined }}>
                 <button onClick={() => toggle(task)} aria-label={task.completed ? 'Desmarcar' : 'Concluir'} className="grid h-6 w-6 shrink-0 place-items-center rounded-full border" style={{ background: task.completed ? 'var(--energy)' : 'transparent', borderColor: task.completed ? 'var(--energy)' : 'rgba(255,255,255,.18)', color: '#11130f' }}>{task.completed && <Check size={14}/>}</button>
 
-                <div className="flex min-w-0 flex-1 items-center gap-1.5">
-                  {task.category === 'repasse' && <ArrowLeft size={13} className="shrink-0 text-energy" aria-label="Veio de outro dia"/>}
-                  <p className={`truncate text-sm ${task.completed ? 'text-white/35 line-through' : 'text-white'}`}>{task.title}</p>
-                </div>
+                {editing
+                  ? <input autoFocus defaultValue={task.title} maxLength={160}
+                      onClick={event => event.stopPropagation()}
+                      onKeyDown={event => { if (event.key === 'Enter') rename(task, event.currentTarget.value); if (event.key === 'Escape') setRenaming(null) }}
+                      onBlur={event => rename(task, event.target.value)}
+                      className="field min-w-0 flex-1 py-1 text-sm"/>
+                  : <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                      {/* Os símbolos são indicadores: só aparecem quando o estado está ativo. */}
+                      {task.category === 'repasse' && <ArrowLeft size={13} className="shrink-0 text-energy" aria-label="Veio de outro dia"/>}
+                      {fixed && <Pin size={12} className="shrink-0 text-energy" fill="currentColor" aria-label="Hábito"/>}
+                      {essential && <Star size={12} className="shrink-0 text-energy" fill="currentColor" aria-label="Essencial"/>}
+                      <p className={`truncate text-sm ${task.completed ? 'text-white/35 line-through' : 'text-white'}`}>{task.title}</p>
+                    </div>}
 
-                <button onClick={() => toggleEssential(task)} aria-label={essential ? 'Remover de essencial' : 'Marcar como essencial'} title="Essencial" className="shrink-0 rounded-lg p-1" style={{ color: essential ? 'var(--energy)' : 'var(--muted)' }}><Star size={14} fill={essential ? 'currentColor' : 'none'}/></button>
-                <button onClick={() => toggleFixed(task)} aria-label={fixed ? 'Deixar de ser fixa' : 'Tornar fixa'} title="Fixa (conta para a constância)" className="shrink-0 rounded-lg p-1" style={{ color: fixed ? 'var(--energy)' : 'var(--muted)' }}><Pin size={14} fill={fixed ? 'currentColor' : 'none'}/></button>
-                <button onClick={() => carryTask(task, selected)} aria-label="Não consegui hoje" title="Não consegui hoje" className="muted shrink-0 rounded-lg p-1 hover:text-energy"><ArrowRight size={14}/></button>
-                <button onClick={event => { event.stopPropagation(); setOpenMenu(openMenu === task.id ? null : task.id) }} aria-label="Mover" className="muted shrink-0 rounded-lg p-1 hover:text-white"><ChevronDown size={14}/></button>
+                <button onClick={event => { event.stopPropagation(); setConfirmDelete(null); setOpenMenu(openMenu === task.id ? null : task.id) }} aria-label="Mais opções" className="muted shrink-0 rounded-lg p-1 hover:text-white"><ChevronDown size={14}/></button>
 
-                {openMenu === task.id && <div onClick={event => event.stopPropagation()} className="glass absolute right-2 top-11 z-30 w-44 rounded-2xl p-2 text-sm">
-                  <p className="muted px-2 py-1 text-[10px] font-bold uppercase tracking-wider">Mover para</p>
-                  {dayBlocks.filter(b => b.id !== (task.dayBlock ?? 'livre')).map(b => <button key={b.id} onClick={() => moveTo(task, b.id)} className="block w-full rounded-lg px-2 py-1.5 text-left hover:bg-white/5">{b.label}</button>)}
+                {openMenu === task.id && <div onClick={event => event.stopPropagation()} className="glass absolute right-2 top-11 z-30 w-60 rounded-2xl p-2 text-sm">
+                  <button onClick={() => { toggleFixed(task); closeMenu() }} className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left hover:bg-white/5"><Pin size={14} style={{ color: fixed ? 'var(--energy)' : undefined }}/> {fixed ? 'Deixar de ser hábito' : 'Fixar como hábito'}</button>
+                  <button onClick={() => { toggleEssential(task); closeMenu() }} className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left hover:bg-white/5"><Star size={14} style={{ color: essential ? 'var(--energy)' : undefined }}/> {essential ? 'Remover de essencial' : 'Marcar como essencial'}</button>
+                  <button onClick={() => { carryTask(task, selected); closeMenu() }} className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left hover:bg-white/5"><ArrowRight size={14}/> Não consegui hoje</button>
+                  <div className="my-1 border-t border-white/10"/>
+                  <button onClick={() => { setRenaming(task.id); closeMenu() }} className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left hover:bg-white/5"><PencilLine size={14}/> Renomear</button>
+                  <button onClick={() => { if (confirmDelete === task.id) { deleteTask(task.id); closeMenu() } else setConfirmDelete(task.id) }} className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left hover:bg-white/5" style={{ color: confirmDelete === task.id ? 'var(--danger)' : undefined }}><Trash2 size={14}/> {confirmDelete === task.id ? 'Confirmar exclusão' : 'Excluir'}</button>
                 </div>}
               </div>
             })}
