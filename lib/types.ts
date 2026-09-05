@@ -1,5 +1,19 @@
 export type TaskCategory = 'fixa' | 'hoje' | 'repasse'
 
+/** Blocos do dia. `livre` = sem período definido (o padrão). */
+export type DayBlock = 'manha' | 'tarde' | 'noite' | 'livre'
+export const dayBlocks: { id: DayBlock; label: string }[] = [
+  { id: 'manha', label: 'Manhã' },
+  { id: 'tarde', label: 'Tarde' },
+  { id: 'noite', label: 'Noite' },
+  { id: 'livre', label: 'Sem horário' },
+]
+
+/** 1 = alta, 2 = normal, 3 = baixa (espelha o smallint do banco). */
+export type TaskPriority = 1 | 2 | 3
+
+export type TaskSource = 'manual' | 'ai' | 'whatsapp'
+
 export interface Task {
   id: string
   title: string
@@ -12,6 +26,9 @@ export interface Task {
   scheduledDate?: string
   startTime?: string
   durationMinutes?: number
+  dayBlock?: DayBlock
+  priority?: TaskPriority
+  source?: TaskSource
 }
 
 export type GoalCategory = 'carreira' | 'saude' | 'financeiro' | 'relacionamentos' | 'conhecimento'

@@ -120,6 +120,14 @@ export function useAprumoStore() {
   const updateTask = useCallback((task: Task, eventDate?: string) => { update((s) => ({ ...s, tasks: s.tasks.map((t) => (t.id === task.id ? task : t)) })); void syncCore('updateTask', { task, eventDate }).catch(() => undefined) }, [update])
   const deleteTask = useCallback((id: string) => { update((s) => ({ ...s, tasks: s.tasks.filter((t) => t.id !== id) })); void syncCore('deleteTask', { id }).catch(() => undefined) }, [update])
 
+  /** "Não consegui hoje": adia para amanhã sem tratar como fracasso. */
+  const carryTask = useCallback((task: Task, eventDate?: string) => {
+    const to = new Date(Date.now() + 86400000).toISOString().slice(0, 10)
+    const next: Task = { ...task, category: 'repasse', scheduledDate: to, completed: false }
+    update((s) => ({ ...s, tasks: s.tasks.map((t) => (t.id === task.id ? next : t)) }))
+    void syncCore('carryTask', { task, eventDate }).catch(() => undefined)
+  }, [update])
+
   const addGoal = useCallback((goal: Goal) => { update((s) => ({ ...s, goals: [...s.goals, goal] })); void syncCore('addGoal', { goal }).catch(() => undefined) }, [update])
   const updateGoal = useCallback((goal: Goal) => { update((s) => ({ ...s, goals: s.goals.map((g) => (g.id === goal.id ? goal : g)) })); void syncCore('updateGoal', { goal }).catch(() => undefined) }, [update])
   const deleteGoal = useCallback((id: string) => { update((s) => ({ ...s, goals: s.goals.filter((g) => g.id !== id) })); void syncCore('deleteGoal', { id }).catch(() => undefined) }, [update])
@@ -177,7 +185,7 @@ export function useAprumoStore() {
   return {
     store,
     hydrated,
-    addTask, updateTask, deleteTask,
+    addTask, updateTask, deleteTask, carryTask,
     addGoal, updateGoal, deleteGoal,
     addTransaction, deleteTransaction,
     addAddiction, updateAddiction,

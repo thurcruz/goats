@@ -346,6 +346,7 @@ export type Database = {
       commitment_events: {
         Row: {
           carried_to: string | null
+          reschedule_count: number
           commitment_id: string
           completed_at: string | null
           created_at: string
@@ -358,6 +359,7 @@ export type Database = {
         }
         Insert: {
           carried_to?: string | null
+          reschedule_count?: number
           commitment_id: string
           completed_at?: string | null
           created_at?: string
@@ -370,6 +372,7 @@ export type Database = {
         }
         Update: {
           carried_to?: string | null
+          reschedule_count?: number
           commitment_id?: string
           completed_at?: string | null
           created_at?: string
@@ -401,6 +404,8 @@ export type Database = {
         Row: {
           active: boolean
           category: string
+          day_block: string
+          source: string
           created_at: string
           frequency: Json
           goal_id: string | null
@@ -417,6 +422,8 @@ export type Database = {
         Insert: {
           active?: boolean
           category?: string
+          day_block?: string
+          source?: string
           created_at?: string
           frequency?: Json
           goal_id?: string | null
@@ -433,6 +440,8 @@ export type Database = {
         Update: {
           active?: boolean
           category?: string
+          day_block?: string
+          source?: string
           created_at?: string
           frequency?: Json
           goal_id?: string | null
