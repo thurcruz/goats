@@ -26,14 +26,21 @@ export default function HojePage() {
   const today = new Date().toISOString().slice(0, 10)
   const date = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())
 
+  // O que pertence ao dia de hoje:
+  // - com data: só se for hoje ou anterior (atrasada); datas futuras ficam de fora
+  // - sem data: hábitos e tarefas soltas aparecem todo dia
+  const visible = useMemo(() => store.tasks.filter(task =>
+    task.scheduledDate ? task.scheduledDate.slice(0, 10) <= today : true
+  ), [store.tasks, today])
+
   const grouped = useMemo(() => {
     const map: Record<DayBlock, Task[]> = { manha: [], tarde: [], noite: [], livre: [] }
-    for (const task of store.tasks) map[task.dayBlock ?? 'livre'].push(task)
+    for (const task of visible) map[task.dayBlock ?? 'livre'].push(task)
     return map
-  }, [store.tasks])
+  }, [visible])
 
-  const done = store.tasks.filter(t => t.completed).length
-  const essentials = store.tasks.filter(t => t.priority === 1 && !t.completed)
+  const done = visible.filter(t => t.completed).length
+  const essentials = visible.filter(t => t.priority === 1 && !t.completed)
   const focusToday = (store.focusSessions ?? [])
     .filter(s => s.status === 'completed' && s.startedAt.slice(0, 10) === today)
     .reduce((sum, s) => sum + s.actualSeconds / 60, 0)
@@ -55,9 +62,9 @@ export default function HojePage() {
       <p className="eyebrow">{date}</p>
       <h1 className="display mt-3 max-w-2xl text-4xl font-semibold md:text-6xl">Como vai ser<br/>o seu dia?</h1>
       <p className="muted mt-4 max-w-xl">
-        {store.tasks.length === 0
+        {visible.length === 0
           ? 'Conte o que precisa acontecer. A organização vem depois.'
-          : `${done} de ${store.tasks.length} concluídas${focusToday > 0 ? ` · ${Math.round(focusToday)} min focados` : ''}.`}
+          : `${done} de ${visible.length} concluídas${focusToday > 0 ? ` · ${Math.round(focusToday)} min focados` : ''}.`}
       </p>
     </header>
 
@@ -65,7 +72,7 @@ export default function HojePage() {
       {subAreas.map(({ href, label, icon: Icon }) => <Link key={href} href={href} className="surface flex items-center gap-3 p-4 text-white no-underline"><Icon size={18} className="shrink-0 text-energy"/><span className="text-sm font-semibold">{label}</span></Link>)}
     </nav>
 
-    {store.tasks.length > 0 && <button
+    {visible.length > 0 && <button
       onClick={() => setMinimalDay(v => !v)}
       className="surface mb-5 flex w-full items-center gap-3 p-4 text-left"
       style={{ borderColor: minimalDay ? 'rgba(208,224,39,.5)' : undefined }}>
@@ -84,7 +91,7 @@ export default function HojePage() {
         return <section
           key={block.id}
           onDragOver={event => { event.preventDefault() }}
-          onDrop={event => { event.preventDefault(); const task = store.tasks.find(t => t.id === dragging); if (task) moveTo(task, block.id); setDragging(null) }}
+          onDrop={event => { event.preventDefault(); const task = visible.find(t => t.id === dragging); if (task) moveTo(task, block.id); setDragging(null) }}
           className="surface p-5">
           <div className="mb-4 flex items-baseline justify-between">
             <h2 className="font-semibold">{block.label}</h2>
