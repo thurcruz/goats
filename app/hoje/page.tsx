@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { ArrowLeft, ArrowRight, CalendarDays, Check, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, Circle, PencilLine, Pin, Plus, Star, Timer, Trash2, X } from 'lucide-react'
@@ -32,7 +32,6 @@ export default function HojePage() {
   const [openMenu, setOpenMenu] = useState<string|null>(null)
   const [renaming, setRenaming] = useState<string|null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string|null>(null)
-  const [dragging, setDragging] = useState<string|null>(null)
   const [minimalDay, setMinimalDay] = useState(false)
   const [monthOpen, setMonthOpen] = useState(false)
   const [monthCursor, setMonthCursor] = useState(() => { const d = new Date(); d.setDate(1); return d })
@@ -85,6 +84,74 @@ export default function HojePage() {
     if (title.length >= 2 && title !== task.title) updateTask({ ...task, title }, selected)
   }
   const closeMenu = () => { setOpenMenu(null); setConfirmDelete(null) }
+
+  // --- Arrastar com suporte a mouse e toque -----------------------------
+  // Pointer Events unificam os dois. No toque, arrastar e rolar a página são
+  // o mesmo gesto, então o arrasto só começa após pressionar e segurar.
+  type Drag = { taskId: string; x: number; y: number; over: DayBlock | null }
+  const [drag, setDrag] = useState<Drag | null>(null)
+  const dragRef = useRef<Drag | null>(null)
+  const pending = useRef<{ taskId: string; x: number; y: number; touch: boolean; timer?: number } | null>(null)
+  const blockEls = useRef(new Map<DayBlock, HTMLElement>())
+  const isDragging = drag !== null
+
+  const applyDrag = (next: Drag | null) => { dragRef.current = next; setDrag(next) }
+  const hitTest = (x: number, y: number): DayBlock | null => {
+    for (const [block, element] of blockEls.current) {
+      const rect = element.getBoundingClientRect()
+      if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) return block
+    }
+    return null
+  }
+  const beginDrag = (taskId: string, x: number, y: number) => applyDrag({ taskId, x, y, over: hitTest(x, y) })
+
+  const startPress = (event: React.PointerEvent, taskId: string) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return
+    const touch = event.pointerType === 'touch'
+    const info: NonNullable<typeof pending.current> = { taskId, x: event.clientX, y: event.clientY, touch }
+    if (touch) info.timer = window.setTimeout(() => beginDrag(taskId, info.x, info.y), 350)
+    pending.current = info
+  }
+
+  useEffect(() => {
+    const move = (event: PointerEvent) => {
+      const start = pending.current
+      if (!dragRef.current && start) {
+        const dx = Math.abs(event.clientX - start.x), dy = Math.abs(event.clientY - start.y)
+        // No toque, mover antes do tempo significa rolagem: desiste do arrasto.
+        if (start.touch) { if (dx > 8 || dy > 8) { window.clearTimeout(start.timer); pending.current = null } }
+        else if (dx > 6 || dy > 6) beginDrag(start.taskId, event.clientX, event.clientY)
+      }
+      const current = dragRef.current
+      if (current) applyDrag({ ...current, x: event.clientX, y: event.clientY, over: hitTest(event.clientX, event.clientY) })
+    }
+    const finish = () => {
+      if (pending.current?.timer) window.clearTimeout(pending.current.timer)
+      pending.current = null
+      const current = dragRef.current
+      if (current?.over) {
+        const task = store.tasks.find(item => item.id === current.taskId)
+        if (task && (task.dayBlock ?? 'livre') !== current.over) moveTo(task, current.over)
+      }
+      applyDrag(null)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', finish)
+    window.addEventListener('pointercancel', finish)
+    return () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', finish)
+      window.removeEventListener('pointercancel', finish)
+    }
+  })
+
+  // Enquanto arrasta no toque, impede que a página role junto.
+  useEffect(() => {
+    if (!isDragging) return
+    const stop = (event: TouchEvent) => event.preventDefault()
+    document.addEventListener('touchmove', stop, { passive: false })
+    return () => document.removeEventListener('touchmove', stop)
+  }, [isDragging])
 
   const monthDays = useMemo(() => {
     const first = new Date(monthCursor.getFullYear(), monthCursor.getMonth(), 1)
@@ -140,10 +207,11 @@ export default function HojePage() {
     <div className="grid gap-4 md:grid-cols-2">
       {dayBlocks.map(block => {
         const tasks = grouped[block.id]
+        const isTarget = drag?.over === block.id
         return <section key={block.id}
-          onDragOver={event => event.preventDefault()}
-          onDrop={event => { event.preventDefault(); const task = visible.find(t => t.id === dragging); if (task) moveTo(task, block.id); setDragging(null) }}
-          className="surface p-5">
+          ref={element => { if (element) blockEls.current.set(block.id, element); else blockEls.current.delete(block.id) }}
+          className="surface p-5 transition"
+          style={{ borderColor: isTarget ? 'var(--energy)' : undefined, background: isTarget ? 'rgba(208,224,39,.04)' : undefined }}>
           <div className="mb-4 flex items-baseline justify-between">
             <h2 className="font-semibold">{block.label}</h2>
             <span className="muted text-xs">{tasks.filter(t => t.completed).length}/{tasks.length}</span>
@@ -156,10 +224,12 @@ export default function HojePage() {
               const essential = task.priority === 1
               const fixed = task.category === 'fixa'
               const editing = renaming === task.id
-              return <div key={task.id} draggable={!editing} onDragStart={() => setDragging(task.id)} onDragEnd={() => setDragging(null)}
-                className="relative flex items-center gap-2 rounded-2xl border border-white/[.07] bg-white/[.025] p-3 transition"
-                style={{ opacity: dimmed ? .35 : 1, borderColor: essential && !task.completed ? 'rgba(208,224,39,.4)' : undefined }}>
-                <button onClick={() => toggle(task)} aria-label={task.completed ? 'Desmarcar' : 'Concluir'} className="grid h-6 w-6 shrink-0 place-items-center rounded-full border" style={{ background: task.completed ? 'var(--energy)' : 'transparent', borderColor: task.completed ? 'var(--energy)' : 'rgba(255,255,255,.18)', color: '#11130f' }}>{task.completed && <Check size={14}/>}</button>
+              const beingDragged = drag?.taskId === task.id
+              return <div key={task.id}
+                onPointerDown={event => { if (!editing) startPress(event, task.id) }}
+                className="relative flex touch-pan-y items-center gap-2 rounded-2xl border border-white/[.07] bg-white/[.025] p-3 transition select-none"
+                style={{ opacity: beingDragged ? .4 : dimmed ? .35 : 1, borderColor: essential && !task.completed ? 'rgba(208,224,39,.4)' : undefined }}>
+                <button onPointerDown={event => event.stopPropagation()} onClick={() => toggle(task)} aria-label={task.completed ? 'Desmarcar' : 'Concluir'} className="grid h-6 w-6 shrink-0 place-items-center rounded-full border" style={{ background: task.completed ? 'var(--energy)' : 'transparent', borderColor: task.completed ? 'var(--energy)' : 'rgba(255,255,255,.18)', color: '#11130f' }}>{task.completed && <Check size={14}/>}</button>
 
                 {editing
                   ? <input autoFocus defaultValue={task.title} maxLength={160}
@@ -175,7 +245,7 @@ export default function HojePage() {
                       <p className={`truncate text-sm ${task.completed ? 'text-white/35 line-through' : 'text-white'}`}>{task.title}</p>
                     </div>}
 
-                <button onClick={event => { event.stopPropagation(); setConfirmDelete(null); setOpenMenu(openMenu === task.id ? null : task.id) }} aria-label="Mais opções" className="muted shrink-0 rounded-lg p-1 hover:text-white"><ChevronDown size={14}/></button>
+                <button onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); setConfirmDelete(null); setOpenMenu(openMenu === task.id ? null : task.id) }} aria-label="Mais opções" className="muted shrink-0 rounded-lg p-1 hover:text-white"><ChevronDown size={14}/></button>
 
                 {openMenu === task.id && <div onClick={event => event.stopPropagation()} className="glass absolute right-2 top-11 z-30 w-60 rounded-2xl p-2 text-sm">
                   <button onClick={() => { toggleFixed(task); closeMenu() }} className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left hover:bg-white/5"><Pin size={14} style={{ color: fixed ? 'var(--energy)' : undefined }}/> {fixed ? 'Deixar de ser hábito' : 'Fixar como hábito'}</button>
@@ -231,6 +301,10 @@ export default function HojePage() {
         </motion.div>
       </PlusGate>
     </section>
+
+    {drag && <div className="glass pointer-events-none fixed z-[60] max-w-56 truncate rounded-2xl px-3 py-2 text-sm font-semibold" style={{ left: drag.x + 14, top: drag.y - 18 }}>
+      {store.tasks.find(item => item.id === drag.taskId)?.title}
+    </div>}
 
     {monthOpen && <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur-sm" onClick={() => setMonthOpen(false)}>
       <div className="surface w-full max-w-md p-6" onClick={event => event.stopPropagation()}>
