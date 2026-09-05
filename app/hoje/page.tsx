@@ -188,8 +188,11 @@ export default function HojePage() {
           return <button key={value} onClick={() => setSelected(value)}
             className="flex min-w-11 flex-1 flex-col items-center gap-1 rounded-2xl border px-1 py-2 transition"
             style={{ borderColor: active ? 'var(--energy)' : 'var(--line)', background: active ? 'var(--energy)' : 'transparent', color: active ? '#11130f' : value === today ? 'var(--ink)' : 'var(--muted)' }}>
+            {/* Marcador de "hoje" — sempre renderizado para não variar a altura. */}
+            <span className="h-1 w-1 rounded-full" style={{ background: value === today ? (active ? '#11130f' : 'var(--ink)') : 'transparent' }}/>
             <small className="text-[9px] font-bold uppercase">{new Intl.DateTimeFormat('pt-BR', { weekday: 'narrow' }).format(day)}</small>
             <strong className="text-sm">{day.getDate()}</strong>
+            {/* Progresso do dia, em cor de marca, para não se confundir com o marcador acima. */}
             <span className="h-1 w-1 rounded-full" style={{ background: ratio === 1 && dayTasks.length > 0 ? (active ? '#11130f' : 'var(--energy)') : ratio > 0 ? (active ? 'rgba(17,19,15,.4)' : 'rgba(208,224,39,.4)') : 'transparent' }}/>
           </button>
         })}
