@@ -126,6 +126,21 @@ export interface MoodEntry {
   note?: string
 }
 
+export type FocusStatus = 'running' | 'completed' | 'abandoned'
+
+export interface FocusSession {
+  id: string
+  commitmentId?: string
+  name: string
+  plannedMinutes: number
+  actualSeconds: number
+  interruptions: number
+  reflection?: string
+  status: FocusStatus
+  startedAt: string
+  endedAt?: string
+}
+
 export interface SleepEntry {
   id: string
   date: string
@@ -156,6 +171,7 @@ export interface AprumoStore {
   moods: MoodEntry[]
   repertoire: RepertoireItem[]
   sleep: SleepEntry[]
+  focusSessions: FocusSession[]
   userName: string
   purpose: string
   metrics: EvolutionMetrics

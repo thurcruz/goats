@@ -159,6 +159,131 @@ export type Database = {
         Update: { id?: string; user_id?: string; conversation_id?: string; role?: string; content?: string; sources?: Json; proposed_action?: Json | null; action_status?: string | null; created_at?: string }
         Relationships: []
       }
+      // NOTA: as três tabelas a seguir (focus_sessions, repertoire_items,
+      // sleep_entries) foram adicionadas à mão porque o CLI local está
+      // autenticado em outra conta e não consegue regenerar este arquivo.
+      // Ao rodar `supabase gen types` com acesso ao projeto, elas serão
+      // substituídas pela versão gerada — confira se o formato bate.
+      focus_sessions: {
+        Row: {
+          actual_seconds: number
+          commitment_id: string | null
+          ended_at: string | null
+          id: string
+          interruptions: number
+          name: string
+          planned_minutes: number
+          reflection: string | null
+          started_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          actual_seconds?: number
+          commitment_id?: string | null
+          ended_at?: string | null
+          id?: string
+          interruptions?: number
+          name?: string
+          planned_minutes: number
+          reflection?: string | null
+          started_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          actual_seconds?: number
+          commitment_id?: string | null
+          ended_at?: string | null
+          id?: string
+          interruptions?: number
+          name?: string
+          planned_minutes?: number
+          reflection?: string | null
+          started_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      repertoire_items: {
+        Row: {
+          author: string
+          book_id: string | null
+          comment: string | null
+          created_at: string
+          excerpt: string | null
+          id: string
+          image_url: string | null
+          kind: string
+          tags: string[]
+          title: string
+          updated_at: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          author?: string
+          book_id?: string | null
+          comment?: string | null
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          image_url?: string | null
+          kind: string
+          tags?: string[]
+          title: string
+          updated_at?: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          author?: string
+          book_id?: string | null
+          comment?: string | null
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          image_url?: string | null
+          kind?: string
+          tags?: string[]
+          title?: string
+          updated_at?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      sleep_entries: {
+        Row: {
+          created_at: string
+          hours: number
+          id: string
+          note: string | null
+          quality: number
+          slept_on: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          hours: number
+          id?: string
+          note?: string | null
+          quality: number
+          slept_on?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          hours?: number
+          id?: string
+          note?: string | null
+          quality?: number
+          slept_on?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       books: {
         Row: {
           author: string

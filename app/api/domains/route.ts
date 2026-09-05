@@ -1,15 +1,20 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import type { Addiction, Book, BookStatus, FinancialGoal, MoodEntry, Note, Transaction, WorkoutSession } from '@/lib/types'
+import type { Addiction, Book, BookStatus, FinancialGoal, FocusSession, FocusStatus, MoodEntry, Note, RepertoireItem, RepertoireKind, SleepEntry, Transaction, WorkoutSession } from '@/lib/types'
 import type { Json } from '@/lib/database.types'
 
 const bookStatusFromDb:Record<string,BookStatus>={want_to_read:'quero-ler',reading:'lendo',completed:'lido',abandoned:'quero-ler'}
 const bookStatusToDb:Record<BookStatus,'want_to_read'|'reading'|'completed'>={'quero-ler':'want_to_read',lendo:'reading',lido:'completed'}
+// O schema usa um vocabulário mais amplo (12 tipos) do que os 4 da UI atual.
+const repertoireKindToDb:Record<RepertoireKind,string>={ideia:'idea',citacao:'quote',aprendizado:'reflection',nota:'note'}
+const repertoireKindFromDb:Record<string,RepertoireKind>={idea:'ideia',quote:'citacao',reflection:'aprendizado',note:'nota'}
+// `repertoire_items.title` é NOT NULL com limite de 240 — a UI grava o texto aqui.
+const REPERTOIRE_MAX=240
 async function context(){const supabase=await createSupabaseServerClient();const{data:{user},error}=await supabase.auth.getUser();return error||!user?null:{supabase,user}}
 
 export async function GET(){
   try{const ctx=await context();if(!ctx)return NextResponse.json({error:'Não autenticado'},{status:401})
-    const [moodsR,booksR,notesR,transactionsR,financialR,addictionsR,addictionEventsR,workoutsR]=await Promise.all([
+    const [moodsR,booksR,notesR,transactionsR,financialR,addictionsR,addictionEventsR,workoutsR,repertoireR,sleepR,focusR]=await Promise.all([
       ctx.supabase.from('mood_entries').select('id,mood,note,recorded_at').eq('user_id',ctx.user.id).order('recorded_at'),
       ctx.supabase.from('books').select('id,title,author,status,rating,summary,started_at,finished_at,current_page,total_pages').eq('user_id',ctx.user.id).order('created_at'),
       ctx.supabase.from('knowledge_notes').select('id,title,content,created_at,updated_at').eq('user_id',ctx.user.id).order('updated_at'),
@@ -18,8 +23,11 @@ export async function GET(){
       ctx.supabase.from('addictions').select('id,name,start_date,daily_cost,replacement_plan').eq('user_id',ctx.user.id).eq('active',true).order('created_at'),
       ctx.supabase.from('addiction_events').select('id,addiction_id,event_type,trigger,note,occurred_at').eq('user_id',ctx.user.id).order('occurred_at'),
       ctx.supabase.from('workout_plans').select('id,name,exercises').eq('user_id',ctx.user.id).eq('active',true).order('created_at'),
+      ctx.supabase.from('repertoire_items').select('id,kind,title,author,created_at').eq('user_id',ctx.user.id).order('created_at',{ascending:false}),
+      ctx.supabase.from('sleep_entries').select('id,slept_on,hours,quality,note').eq('user_id',ctx.user.id).order('slept_on',{ascending:false}),
+      ctx.supabase.from('focus_sessions').select('id,commitment_id,name,planned_minutes,actual_seconds,interruptions,reflection,status,started_at,ended_at').eq('user_id',ctx.user.id).order('started_at',{ascending:false}).limit(50),
     ])
-    const error=moodsR.error??booksR.error??notesR.error??transactionsR.error??financialR.error??addictionsR.error??addictionEventsR.error??workoutsR.error;if(error)throw error
+    const error=moodsR.error??booksR.error??notesR.error??transactionsR.error??financialR.error??addictionsR.error??addictionEventsR.error??workoutsR.error??repertoireR.error??sleepR.error??focusR.error;if(error)throw error
     const moods:MoodEntry[]=(moodsR.data??[]).map(row=>({id:row.id,date:row.recorded_at,mood:row.mood as MoodEntry['mood'],note:row.note??undefined}))
     const books:Book[]=(booksR.data??[]).map(row=>({id:row.id,title:row.title,author:row.author,status:bookStatusFromDb[row.status]??'quero-ler',rating:row.rating as Book['rating'],notes:row.summary??undefined,startedAt:row.started_at??undefined,finishedAt:row.finished_at??undefined,currentPage:row.current_page??undefined,totalPages:row.total_pages??undefined}))
     const notes:Note[]=(notesR.data??[]).map(row=>({id:row.id,title:row.title,content:row.content,createdAt:row.created_at,updatedAt:row.updated_at}))
@@ -27,11 +35,14 @@ export async function GET(){
     const financialGoals:FinancialGoal[]=(financialR.data??[]).map(row=>({id:row.id,title:row.title,target:Number(row.target),current:Number(row.current_amount)}))
     const addictions:Addiction[]=(addictionsR.data??[]).map(row=>{const events=(addictionEventsR.data??[]).filter(event=>event.addiction_id===row.id);return{id:row.id,name:row.name,startDate:row.start_date,dailyCost:row.daily_cost===null?undefined:Number(row.daily_cost),contingencyPlan:Array.isArray(row.replacement_plan)?row.replacement_plan.filter((item):item is string=>typeof item==='string'):[],relapses:events.filter(event=>event.event_type==='relapse').map(event=>({id:event.id,date:event.occurred_at,note:event.note??undefined})),triggers:events.filter(event=>event.event_type!=='relapse').map(event=>({id:event.id,date:event.occurred_at,description:event.trigger??undefined,resisted:event.event_type==='resisted'}))}})
     const workouts:WorkoutSession[]=(workoutsR.data??[]).map(row=>({id:row.id,name:row.name,exercises:Array.isArray(row.exercises)?row.exercises as unknown as WorkoutSession['exercises']:[]}))
-    return NextResponse.json({moods,books,notes,transactions,financialGoals,addictions,workouts})
+    const repertoire:RepertoireItem[]=(repertoireR.data??[]).map(row=>({id:row.id,kind:repertoireKindFromDb[row.kind]??'nota',text:row.title,source:row.author||undefined,createdAt:row.created_at}))
+    const sleep:SleepEntry[]=(sleepR.data??[]).map(row=>({id:row.id,date:row.slept_on,hours:Number(row.hours),quality:row.quality as SleepEntry['quality'],note:row.note??undefined}))
+    const focusSessions:FocusSession[]=(focusR.data??[]).map(row=>({id:row.id,commitmentId:row.commitment_id??undefined,name:row.name,plannedMinutes:row.planned_minutes,actualSeconds:row.actual_seconds,interruptions:row.interruptions,reflection:row.reflection??undefined,status:row.status as FocusStatus,startedAt:row.started_at,endedAt:row.ended_at??undefined}))
+    return NextResponse.json({moods,books,notes,transactions,financialGoals,addictions,workouts,repertoire,sleep,focusSessions})
   }catch(error){return NextResponse.json({error:error instanceof Error?error.message:'Dados indisponíveis'},{status:503})}}
 
 export async function POST(request:Request){
-    try{const ctx=await context();if(!ctx)return NextResponse.json({error:'Não autenticado'},{status:401});const body=await request.json() as {action?:string;mood?:MoodEntry;book?:Book;note?:Note;transaction?:Transaction;financialGoal?:FinancialGoal;addiction?:Addiction;workout?:WorkoutSession;id?:string}
+    try{const ctx=await context();if(!ctx)return NextResponse.json({error:'Não autenticado'},{status:401});const body=await request.json() as {action?:string;mood?:MoodEntry;book?:Book;note?:Note;transaction?:Transaction;financialGoal?:FinancialGoal;addiction?:Addiction;workout?:WorkoutSession;repertoire?:RepertoireItem;sleep?:SleepEntry;focusSession?:FocusSession;id?:string}
     if(body.action==='addMood'&&body.mood){const m=body.mood;const day=m.date.slice(0,10),start=`${day}T00:00:00.000Z`,end=`${day}T23:59:59.999Z`;const{data:existing}=await ctx.supabase.from('mood_entries').select('id').eq('user_id',ctx.user.id).gte('recorded_at',start).lte('recorded_at',end).maybeSingle();const query=existing?ctx.supabase.from('mood_entries').update({mood:m.mood,note:m.note??null,recorded_at:m.date}).eq('id',existing.id):ctx.supabase.from('mood_entries').insert({id:m.id,user_id:ctx.user.id,mood:m.mood,note:m.note??null,recorded_at:m.date});const{error}=await query;if(error)throw error}
     else if(body.action==='addBook'&&body.book){const b=body.book;const total=b.totalPages&&b.totalPages>0?Math.floor(b.totalPages):null;const page=Math.max(0,Math.min(Math.floor(b.currentPage??0),total??Number.MAX_SAFE_INTEGER));const{error}=await ctx.supabase.from('books').insert({id:b.id,user_id:ctx.user.id,title:b.title,author:b.author,status:bookStatusToDb[b.status],rating:b.rating??null,summary:b.notes??null,total_pages:total,current_page:page});if(error)throw error}
     else if(body.action==='updateBook'&&body.book){const b=body.book;const total=b.totalPages&&b.totalPages>0?Math.floor(b.totalPages):null;const page=Math.max(0,Math.min(Math.floor(b.currentPage??0),total??Number.MAX_SAFE_INTEGER));const{error}=await ctx.supabase.from('books').update({title:b.title,author:b.author,status:bookStatusToDb[b.status],rating:b.rating??null,summary:b.notes??null,total_pages:total,current_page:page,updated_at:new Date().toISOString()}).eq('id',b.id).eq('user_id',ctx.user.id);if(error)throw error}
@@ -47,5 +58,9 @@ export async function POST(request:Request){
     else if(body.action==='updateWorkout'&&body.workout){const w=body.workout;const{error}=await ctx.supabase.from('workout_plans').update({name:w.name,exercises:w.exercises as unknown as Json,updated_at:new Date().toISOString()}).eq('id',w.id).eq('user_id',ctx.user.id);if(error)throw error}
     else if(body.action==='addAddiction'&&body.addiction){const a=body.addiction;const{error}=await ctx.supabase.from('addictions').insert({id:a.id,user_id:ctx.user.id,name:a.name,start_date:a.startDate.slice(0,10),daily_cost:a.dailyCost??null,replacement_plan:a.contingencyPlan as Json});if(error)throw error}
     else if(body.action==='updateAddiction'&&body.addiction){const a=body.addiction;const{error}=await ctx.supabase.from('addictions').update({name:a.name,start_date:a.startDate.slice(0,10),daily_cost:a.dailyCost??null,replacement_plan:a.contingencyPlan as Json,updated_at:new Date().toISOString()}).eq('id',a.id).eq('user_id',ctx.user.id);if(error)throw error;const trigger=a.triggers.at(-1);if(trigger){const{error:eventError}=await ctx.supabase.from('addiction_events').upsert({id:trigger.id,user_id:ctx.user.id,addiction_id:a.id,event_type:trigger.resisted?'resisted':'urge',trigger:trigger.description??null,occurred_at:trigger.date},{onConflict:'id'});if(eventError)throw eventError}}
+    else if(body.action==='addRepertoire'&&body.repertoire){const r=body.repertoire;const text=r.text.trim().slice(0,REPERTOIRE_MAX);if(!text)return NextResponse.json({error:'Texto do repertório inválido'},{status:400});const{error}=await ctx.supabase.from('repertoire_items').insert({id:r.id,user_id:ctx.user.id,kind:repertoireKindToDb[r.kind]??'note',title:text,author:r.source?.trim().slice(0,240)??'',created_at:r.createdAt});if(error)throw error}
+    else if(body.action==='deleteRepertoire'&&body.id){const{error}=await ctx.supabase.from('repertoire_items').delete().eq('id',body.id).eq('user_id',ctx.user.id);if(error)throw error}
+    else if(body.action==='addSleep'&&body.sleep){const s=body.sleep;if(!(s.hours>0&&s.hours<=24))return NextResponse.json({error:'Horas de sono inválidas'},{status:400});const{error}=await ctx.supabase.from('sleep_entries').upsert({user_id:ctx.user.id,slept_on:s.date.slice(0,10),hours:s.hours,quality:s.quality,note:s.note??null},{onConflict:'user_id,slept_on'});if(error)throw error}
+    else if(body.action==='addFocusSession'&&body.focusSession){const f=body.focusSession;if(!(f.plannedMinutes>=1&&f.plannedMinutes<=600))return NextResponse.json({error:'Duração planejada inválida'},{status:400});const{error}=await ctx.supabase.from('focus_sessions').upsert({id:f.id,user_id:ctx.user.id,commitment_id:f.commitmentId??null,name:f.name.slice(0,160),planned_minutes:f.plannedMinutes,actual_seconds:Math.max(0,Math.floor(f.actualSeconds)),interruptions:Math.max(0,f.interruptions),reflection:f.reflection?.slice(0,2000)??null,status:f.status,started_at:f.startedAt,ended_at:f.endedAt??null},{onConflict:'id'});if(error)throw error}
     else return NextResponse.json({error:'Ação inválida'},{status:400});return NextResponse.json({ok:true})
   }catch(error){return NextResponse.json({error:error instanceof Error?error.message:'Não foi possível salvar'},{status:500})}}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { AprumoStore, Task, Goal, Transaction, FinancialGoal, Addiction, WorkoutSession, Book, Note, MoodEntry, RepertoireItem, SleepEntry } from './types'
+import { AprumoStore, Task, Goal, Transaction, FinancialGoal, Addiction, WorkoutSession, Book, Note, MoodEntry, RepertoireItem, SleepEntry, FocusSession } from './types'
 
 const STORAGE_KEY = 'aprumo-store'
 const VERSION_KEY = 'aprumo-store-version'
@@ -27,6 +27,7 @@ const initialData: AprumoStore = {
   moods: [],
   repertoire: [],
   sleep: [],
+  focusSessions: [],
 }
 
 function loadStore(): AprumoStore {
@@ -77,7 +78,7 @@ async function syncCore(action: string, payload: { task?: Task; goal?: Goal; id?
   await fetch('/api/core', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action, ...payload }) })
 }
 
-type DomainState = Pick<AprumoStore, 'moods'|'books'|'notes'|'transactions'|'financialGoals'|'addictions'|'workouts'>
+type DomainState = Pick<AprumoStore, 'moods'|'books'|'notes'|'transactions'|'financialGoals'|'addictions'|'workouts'|'repertoire'|'sleep'|'focusSessions'>
 async function loadDomains(): Promise<DomainState | null> {
   if (!BACKEND_ENABLED) return null
   const response = await fetch('/api/domains', { cache: 'no-store' })
@@ -152,13 +153,26 @@ export function useAprumoStore() {
   const addFinancialGoal = useCallback((fg: FinancialGoal) => {update((s) => ({ ...s, financialGoals: [...(s.financialGoals ?? []), fg] }));void syncDomain('addFinancialGoal',{financialGoal:fg}).catch(()=>undefined)}, [update])
   const updateFinancialGoal = useCallback((fg: FinancialGoal) => {update((s) => ({ ...s, financialGoals: (s.financialGoals ?? []).map((x) => (x.id === fg.id ? fg : x)) }));void syncDomain('updateFinancialGoal',{financialGoal:fg}).catch(()=>undefined)}, [update])
 
-  const addRepertoire = useCallback((item: RepertoireItem) => update((s) => ({ ...s, repertoire: [item, ...(s.repertoire ?? [])] })), [update])
-  const deleteRepertoire = useCallback((id: string) => update((s) => ({ ...s, repertoire: (s.repertoire ?? []).filter((r) => r.id !== id) })), [update])
+  const addRepertoire = useCallback((item: RepertoireItem) => { update((s) => ({ ...s, repertoire: [item, ...(s.repertoire ?? [])] })); void syncDomain('addRepertoire', { repertoire: item }).catch(() => undefined) }, [update])
+  const deleteRepertoire = useCallback((id: string) => { update((s) => ({ ...s, repertoire: (s.repertoire ?? []).filter((r) => r.id !== id) })); void syncDomain('deleteRepertoire', { id }).catch(() => undefined) }, [update])
 
-  const addSleep = useCallback((entry: SleepEntry) => update((s) => {
-    const existing = (s.sleep ?? []).find((x) => new Date(x.date).toDateString() === new Date(entry.date).toDateString())
-    return existing ? { ...s, sleep: s.sleep.map((x) => (x.id === existing.id ? entry : x)) } : { ...s, sleep: [entry, ...(s.sleep ?? [])] }
-  }), [update])
+  const addSleep = useCallback((entry: SleepEntry) => {
+    update((s) => {
+      const existing = (s.sleep ?? []).find((x) => new Date(x.date).toDateString() === new Date(entry.date).toDateString())
+      return existing ? { ...s, sleep: s.sleep.map((x) => (x.id === existing.id ? entry : x)) } : { ...s, sleep: [entry, ...(s.sleep ?? [])] }
+    })
+    void syncDomain('addSleep', { sleep: entry }).catch(() => undefined)
+  }, [update])
+
+  const saveFocusSession = useCallback((session: FocusSession) => {
+    update((s) => {
+      const list = s.focusSessions ?? []
+      return list.some((x) => x.id === session.id)
+        ? { ...s, focusSessions: list.map((x) => (x.id === session.id ? session : x)) }
+        : { ...s, focusSessions: [session, ...list] }
+    })
+    void syncDomain('addFocusSession', { focusSession: session }).catch(() => undefined)
+  }, [update])
 
   return {
     store,
@@ -178,5 +192,6 @@ export function useAprumoStore() {
     addRepertoire,
     deleteRepertoire,
     addSleep,
+    saveFocusSession,
   }
 }
