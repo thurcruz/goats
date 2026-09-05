@@ -3,7 +3,7 @@ import './globals.css'
 import AppChrome from '@/components/layout/AppChrome'
 
 export const metadata: Metadata = {
-  title: 'APRUMO — Sua evolução, todos os dias',
+  title: 'Aprumo — Sua evolução, todos os dias',
   description: 'Clareza para decidir. Sistema para executar. Evolução que você consegue ver.',
 }
 

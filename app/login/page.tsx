@@ -22,7 +22,7 @@ export default function LoginPage() {
     finally { setLoading(false) }
   }
   return <main className="auth-page"><AuthVisual/><section className="auth-panel">
-    <Link href="/" className="brand-mark auth-mobile-brand"><span>A</span><strong>APRUMO</strong></Link>
+    <Link href="/" className="brand-mark auth-mobile-brand"><span>A</span><strong>Aprumo</strong></Link>
     <div className="auth-form-wrap"><p className="section-label">BEM-VINDO DE VOLTA</p><h1>Continue sua<br/><em>evolução.</em></h1><p className="auth-subtitle">Entre para retomar de onde parou.</p>
       <form onSubmit={login} className="auth-form">
         <label>E-mail<div className="auth-field"><Mail size={18}/><input required type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="voce@exemplo.com"/></div></label>

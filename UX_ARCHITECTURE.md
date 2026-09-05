@@ -1,4 +1,4 @@
-# APRUMO — Arquitetura de experiência
+# Aprumo — Arquitetura de experiência
 
 ## Jornada central
 
@@ -8,10 +8,10 @@ Cada superfície deve ajudar o usuário a responder: onde estou, onde quero cheg
 
 ## Navegação principal
 
-- **Hoje:** prioridade, ações do dia, humor e contexto da Apri.
+- **Hoje:** prioridade, ações do dia, humor e contexto da Pri.
 - **Comunidade:** processos, grupos, desafios e accountability com compartilhamento voluntário.
 - **Adicionar:** ação contextual para hábito/tarefa, meta, transação ou conhecimento.
-- **Apri:** interpretação consentida dos dados e apoio à decisão.
+- **Pri:** interpretação consentida dos dados e apoio à decisão.
 - **Perfil/Evolução:** identidade, mudança longitudinal e acesso aos módulos de apoio.
 
 Metas, Conhecimento, Financeiro e Antivício são partes do sistema pessoal, não destinos concorrentes na navegação principal.
@@ -37,7 +37,7 @@ As métricas devem sempre mostrar período, numerador e denominador. Elas descre
 - Nenhum dado privado é publicado automaticamente.
 - Financeiro, humor, Antivício e conversas com a IA são privados por padrão.
 - Compartilhamento é granular, revogável e explicado antes da confirmação.
-- Apri deve explicar quais dados sustentam cada insight e permitir desligar fontes de contexto.
+- Pri deve explicar quais dados sustentam cada insight e permitir desligar fontes de contexto.
 
 ## Próximas camadas
 

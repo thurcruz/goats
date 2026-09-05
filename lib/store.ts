@@ -4,190 +4,40 @@ import { useState, useEffect, useCallback } from 'react'
 import { AprumoStore, Task, Goal, Transaction, FinancialGoal, Addiction, WorkoutSession, Book, Note, MoodEntry, RepertoireItem, SleepEntry } from './types'
 
 const STORAGE_KEY = 'aprumo-store'
+const VERSION_KEY = 'aprumo-store-version'
+// Suba esta versão sempre que o estado local precisar ser descartado.
+// v2: remoção dos dados fictícios de demonstração.
+const STORAGE_VERSION = '2'
 const BACKEND_ENABLED = Boolean(
   process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 )
 
-const yesterday = new Date()
-yesterday.setDate(yesterday.getDate() - 1)
-
 const initialData: AprumoStore = {
   metrics: { streak: 0, completedCommitments: 0, totalCommitments: 0, carriedCommitments: 0, completedGoals: 0, periodDays: 30 },
-  userName: 'Arthur',
-  purpose: 'Ser um empreendedor independente que tem saúde e liberdade para criar.',
-  tasks: [
-    { id: '1', title: 'Estudar inglês 30 min', category: 'fixa', completed: false, createdAt: new Date().toISOString() },
-    { id: '2', title: 'Treino do dia', category: 'fixa', completed: false, createdAt: new Date().toISOString() },
-    { id: '3', title: 'Meditação 10 min', category: 'fixa', completed: false, createdAt: new Date().toISOString() },
-    { id: '4', title: 'Revisar metas da semana', category: 'hoje', completed: false, createdAt: new Date().toISOString() },
-    { id: '5', title: 'Terminar relatório de projeto', category: 'hoje', completed: false, createdAt: new Date().toISOString() },
-    { id: '6', title: 'Ligar para cliente', category: 'repasse', completed: false, createdAt: yesterday.toISOString() },
-    { id: '7', title: 'Enviar proposta freelance', category: 'repasse', completed: false, createdAt: yesterday.toISOString() },
-  ],
-  goals: [
-    {
-      id: 'g1',
-      title: 'Lançar meu primeiro produto digital',
-      description: 'Criar e lançar um curso online sobre design de produto',
-      category: 'carreira',
-      deadline: '2025-07-31',
-      progress: 40,
-      milestones: [
-        { id: 'm1', title: 'Definir nicho e tema do produto', completed: true },
-        { id: 'm2', title: 'Gravar os primeiros 3 módulos', completed: true },
-        { id: 'm3', title: 'Criar página de vendas', completed: true },
-        { id: 'm4', title: 'Lançamento beta', completed: false },
-        { id: 'm5', title: 'Lançamento oficial', completed: false },
-      ],
-      linkedTasks: ['4'],
-    },
-    {
-      id: 'g2',
-      title: 'Economizar R$ 10.000',
-      description: 'Fundo de emergência e investimentos',
-      category: 'financeiro',
-      deadline: '2025-12-31',
-      progress: 25,
-      milestones: [
-        { id: 'm6', title: 'Guardar R$ 2.500', completed: true },
-        { id: 'm7', title: 'Guardar R$ 5.000', completed: false },
-        { id: 'm8', title: 'Guardar R$ 7.500', completed: false },
-        { id: 'm9', title: 'Meta atingida: R$ 10.000', completed: false },
-      ],
-      linkedTasks: [],
-    },
-  ],
-  transactions: [
-    { id: 't1', description: 'Salário', amount: 4500, type: 'entrada', category: 'Trabalho', createdAt: new Date(new Date().setDate(1)).toISOString() },
-    { id: 't2', description: 'Freelance design', amount: 800, type: 'entrada', category: 'Freelance', createdAt: new Date().toISOString() },
-    { id: 't3', description: 'Aluguel', amount: 1200, type: 'saida', category: 'Moradia', createdAt: new Date().toISOString() },
-    { id: 't4', description: 'Mercado', amount: 350, type: 'saida', category: 'Alimentação', createdAt: new Date().toISOString() },
-    { id: 't5', description: 'Spotify', amount: 21.9, type: 'saida', category: 'Assinaturas', createdAt: yesterday.toISOString() },
-  ],
-  financialGoals: [
-    { id: 'fg1', title: 'Notebook novo', target: 3000, current: 1200 },
-    { id: 'fg2', title: 'Viagem para Portugal', target: 8000, current: 2500 },
-  ],
-  addictions: [
-    {
-      id: 'a1',
-      name: 'Cigarro',
-      startDate: new Date(Date.now() - 47 * 24 * 60 * 60 * 1000).toISOString(),
-      dailyCost: 8,
-      relapses: [],
-      triggers: [
-        { id: 'tr1', date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), description: 'Estresse no trabalho', resisted: true },
-      ],
-      contingencyPlan: [
-        'Fazer 20 flexões',
-        'Beber um copo de água',
-        'Ligar para um amigo',
-        'Sair para caminhar 10 min',
-        'Mascar chicletes',
-      ],
-    },
-  ],
-  workouts: [
-    {
-      id: 'w1',
-      name: 'Treino A — Peito e Tríceps',
-      exercises: [
-        {
-          id: 'e1',
-          name: 'Supino Reto',
-          sets: [
-            { reps: 4, weight: 60, completed: false },
-            { reps: 4, weight: 60, completed: false },
-            { reps: 4, weight: 55, completed: false },
-          ],
-        },
-        {
-          id: 'e2',
-          name: 'Crucifixo',
-          sets: [
-            { reps: 12, weight: 14, completed: false },
-            { reps: 12, weight: 14, completed: false },
-            { reps: 10, weight: 14, completed: false },
-          ],
-        },
-        {
-          id: 'e3',
-          name: 'Tríceps Corda',
-          sets: [
-            { reps: 12, weight: 25, completed: false },
-            { reps: 12, weight: 25, completed: false },
-            { reps: 10, weight: 22, completed: false },
-          ],
-        },
-      ],
-    },
-    {
-      id: 'w2',
-      name: 'Treino B — Costas e Bíceps',
-      exercises: [
-        {
-          id: 'e4',
-          name: 'Puxada Frontal',
-          sets: [
-            { reps: 10, weight: 70, completed: false },
-            { reps: 10, weight: 70, completed: false },
-            { reps: 8, weight: 65, completed: false },
-          ],
-        },
-        {
-          id: 'e5',
-          name: 'Remada Baixa',
-          sets: [
-            { reps: 10, weight: 65, completed: false },
-            { reps: 10, weight: 65, completed: false },
-            { reps: 8, weight: 60, completed: false },
-          ],
-        },
-      ],
-    },
-  ],
-  books: [
-    { id: 'b1', title: 'O Poder do Hábito', author: 'Charles Duhigg', status: 'lido', rating: 5, notes: 'Mudou minha perspectiva sobre rotinas.' },
-    { id: 'b2', title: 'Deep Work', author: 'Cal Newport', status: 'lendo', startedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() },
-    { id: 'b3', title: 'Princípios', author: 'Ray Dalio', status: 'quero-ler' },
-  ],
-  notes: [
-    {
-      id: 'n1',
-      title: 'Princípios para tomar decisões',
-      content: 'Sempre questionar: isso está me aproximando ou afastando dos meus objetivos? Agir com consistência é mais importante do que agir com perfeição.',
-      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-      updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 'n2',
-      title: 'Ideias de produto',
-      content: 'Curso de produtividade para freelancers. App de finanças pessoais minimalista. Newsletter semanal sobre design e tecnologia.',
-      createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-      updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-  ],
-  moods: [
-    { id: 'mo1', date: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(), mood: 3, note: 'Dia corrido mas produtivo' },
-    { id: 'mo2', date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), mood: 4 },
-    { id: 'mo3', date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(), mood: 2, note: 'Estressado com prazo' },
-    { id: 'mo4', date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), mood: 5, note: 'Finalizei o módulo do curso!' },
-    { id: 'mo5', date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), mood: 4 },
-    { id: 'mo6', date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), mood: 3 },
-  ],
-  repertoire: [
-    { id: 'r1', kind: 'aprendizado', text: 'Trabalho profundo precisa de um ritual de entrada.', source: 'Deep Work', createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
-    { id: 'r2', kind: 'citacao', text: 'Você não sobe ao nível dos seus objetivos; você cai ao nível dos seus sistemas.', source: 'James Clear', createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() },
-  ],
-  sleep: [
-    { id: 's1', date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), hours: 7.5, quality: 4 },
-    { id: 's2', date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), hours: 6, quality: 3, note: 'Dormi tarde' },
-  ],
+  userName: '',
+  purpose: '',
+  tasks: [],
+  goals: [],
+  transactions: [],
+  financialGoals: [],
+  addictions: [],
+  workouts: [],
+  books: [],
+  notes: [],
+  moods: [],
+  repertoire: [],
+  sleep: [],
 }
 
 function loadStore(): AprumoStore {
   if (typeof window === 'undefined') return initialData
   try {
+    // Estado local de uma versão anterior (ex.: seed de demonstração) é descartado.
+    if (localStorage.getItem(VERSION_KEY) !== STORAGE_VERSION) {
+      localStorage.removeItem(STORAGE_KEY)
+      localStorage.setItem(VERSION_KEY, STORAGE_VERSION)
+      return initialData
+    }
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return initialData
     const parsed = JSON.parse(raw) as Partial<AprumoStore>

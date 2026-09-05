@@ -126,7 +126,7 @@ export async function POST(request: Request) {
       {type:'function',name:'create_transaction',description:'Propõe registrar uma entrada ou saída financeira.',strict:true,parameters:{type:'object',properties:{description:{type:'string'},amount:{type:'number'},type:{type:'string',enum:['income','expense']},category:{type:'string'},occurred_at:{type:['string','null']}},required:['description','amount','type','category','occurred_at'],additionalProperties:false}},
       {type:'function',name:'update_book_progress',description:'Propõe atualizar a página atual de um livro existente.',strict:true,parameters:{type:'object',properties:{book_id:{type:'string'},current_page:{type:'number'}},required:['book_id','current_page'],additionalProperties:false}},
     ]
-    const response = await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{authorization:`Bearer ${apiKey}`,'content-type':'application/json'},body:JSON.stringify({model:process.env.OPENAI_MODEL??'gpt-5.6-luna',reasoning:{effort:'low'},max_output_tokens:700,store:false,tools,instructions:'Você é a Apri, copiloto de evolução pessoal. Responda em português do Brasil. Use apenas o contexto autorizado. Para registrar ou alterar dados, use exatamente uma ferramenta; nunca afirme que gravou algo. A aplicação solicitará confirmação antes de executar. Em perguntas sobre o que falta hoje, exclua status_today completed. Datas e horários devem usar o fuso informado. Não diagnostique nem dê aconselhamento financeiro profissional.',input})})
+    const response = await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{authorization:`Bearer ${apiKey}`,'content-type':'application/json'},body:JSON.stringify({model:process.env.OPENAI_MODEL??'gpt-5.6-luna',reasoning:{effort:'low'},max_output_tokens:700,store:false,tools,instructions:'Você é a Pri, copiloto de evolução pessoal. Responda em português do Brasil. Use apenas o contexto autorizado. Para registrar ou alterar dados, use exatamente uma ferramenta; nunca afirme que gravou algo. A aplicação solicitará confirmação antes de executar. Em perguntas sobre o que falta hoje, exclua status_today completed. Datas e horários devem usar o fuso informado. Não diagnostique nem dê aconselhamento financeiro profissional.',input})})
     const payload = await response.json() as OpenAIResponse
     if (!response.ok) throw new Error(payload.error?.message??'Falha ao consultar a IA')
     const call = payload.output?.find(item=>item.type==='function_call'&&item.name)
@@ -145,6 +145,6 @@ export async function POST(request: Request) {
     await ctx.supabase.from('ai_audit_log').insert({user_id:ctx.user.id,channel:'web',action:'chat_response',metadata:{model:process.env.OPENAI_MODEL??'gpt-5.6-luna',sources}})
     return NextResponse.json({answer,sources,conversationId})
   } catch(error) {
-    return NextResponse.json({error:error instanceof Error?error.message:'Apri indisponível'},{status:500})
+    return NextResponse.json({error:error instanceof Error?error.message:'Pri indisponível'},{status:500})
   }
 }

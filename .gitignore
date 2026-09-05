@@ -43,3 +43,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# agent skills — conteúdo de terceiros, reinstalável com `npx skills add`
+# (skills-lock.json é versionado para garantir reprodutibilidade)
+/.agents/
+/.claude/skills/
+
+# windows
+desktop.ini
