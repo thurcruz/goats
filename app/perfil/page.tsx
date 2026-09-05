@@ -8,8 +8,8 @@ import { computeXp } from '@/lib/xp'
 
 const modules = [
   { href: '/metas', label: 'Metas', icon: Target },
-  { href: '/conhecimento', label: 'Conhecimento', icon: BookOpen },
-  { href: '/financeiro', label: 'Financeiro', icon: CircleDollarSign },
+  { href: '/mente', label: 'Mente', icon: BookOpen },
+  { href: '/financas', label: 'Finanças', icon: CircleDollarSign },
   { href: '/antivicio', label: 'Antivício', icon: Shield },
 ]
 
@@ -24,8 +24,8 @@ export default function PerfilPage() {
   const xp = computeXp(store)
   const moduleDetails: Record<string, string> = {
     '/metas': `${activeGoals} em movimento`,
-    '/conhecimento': `${store.books.length} ${store.books.length === 1 ? 'livro' : 'livros'}`,
-    '/financeiro': 'visão do mês',
+    '/mente': `${store.books.length} ${store.books.length === 1 ? 'livro' : 'livros'}`,
+    '/financas': 'visão do mês',
     '/antivicio': addiction ? `${addictionDays} ${addictionDays === 1 ? 'dia' : 'dias'}` : 'privado',
   }
   function beginEdit() { setName(store.userName); setLocalPurpose(store.purpose); setEditing(true) }

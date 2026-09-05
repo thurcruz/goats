@@ -2,14 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Brain, CircleDollarSign, HeartPulse, UsersRound, Zap } from 'lucide-react'
+import { Brain, CircleDollarSign, HeartPulse, Sun, UsersRound } from 'lucide-react'
 
 const nav = [
-  { href: '/dashboard', label: 'Performance', icon: Zap },
+  { href: '/hoje', label: 'Hoje', icon: Sun },
   { href: '/comunidade', label: 'Comunidade', icon: UsersRound },
-  { href: '/saude', label: 'Saúde', icon: HeartPulse },
-  { href: '/financeiro', label: 'Financeiro', icon: CircleDollarSign },
-  { href: '/conhecimento', label: 'Conhecimento', icon: Brain },
+  { href: '/corpo', label: 'Corpo', icon: HeartPulse },
+  { href: '/mente', label: 'Mente', icon: Brain },
+  { href: '/financas', label: 'Finanças', icon: CircleDollarSign },
 ]
 
 export default function BottomNav() {

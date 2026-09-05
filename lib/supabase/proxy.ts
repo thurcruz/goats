@@ -25,7 +25,7 @@ export async function updateSession(request: NextRequest) {
     return copyCookies(response, NextResponse.redirect(loginUrl))
   }
   if (authenticated && (pathname === '/login' || pathname === '/cadastro')) {
-    const dashboardUrl = request.nextUrl.clone(); dashboardUrl.pathname = '/dashboard'; dashboardUrl.search = ''
+    const dashboardUrl = request.nextUrl.clone(); dashboardUrl.pathname = '/hoje'; dashboardUrl.search = ''
     return copyCookies(response, NextResponse.redirect(dashboardUrl))
   }
   return response

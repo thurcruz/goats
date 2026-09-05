@@ -5,7 +5,7 @@ export async function GET(request: Request) {
   const url = new URL(request.url)
   const code = url.searchParams.get('code')
   const requestedNext = url.searchParams.get('next')
-  const next = requestedNext?.startsWith('/') && !requestedNext.startsWith('//') ? requestedNext : '/dashboard'
+  const next = requestedNext?.startsWith('/') && !requestedNext.startsWith('//') ? requestedNext : '/hoje'
   if (code) {
     const supabase = await createSupabaseServerClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)

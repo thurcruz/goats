@@ -8,7 +8,7 @@ export default function TopBar() {
   const pathname = usePathname()
   const active = (href: string) => pathname === href || pathname.startsWith(`${href}/`)
   return <header className="glass sticky top-0 z-40 flex h-14 items-center justify-between px-4 md:hidden">
-    <Link href="/dashboard" className="flex items-center gap-2 text-white no-underline">
+    <Link href="/hoje" className="flex items-center gap-2 text-white no-underline">
       <span className="grid h-8 w-8 place-items-center rounded-xl bg-energy text-[#11130f]"><Sparkles size={17}/></span>
       <strong className="text-sm tracking-[.18em]">Aprumo</strong>
     </Link>

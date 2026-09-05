@@ -23,7 +23,7 @@ export default function OnboardingPage() {
     setUserName(displayName); setPurpose(userPurpose)
     addGoal({ id: crypto.randomUUID(), title: goal.trim(), description: `Primeira meta definida no onboarding em ${areas.find(item=>item.id===area)?.label}.`, category: area, deadline: new Date(Date.now()+90*86400000).toISOString().slice(0,10), progress: 0, milestones: [], linkedTasks: [] })
     try { await fetch('/api/profile', { method:'PUT', headers:{'content-type':'application/json'}, body:JSON.stringify({displayName,purpose:userPurpose}) }) } catch { /* Offline-first store remains available. */ }
-    router.push('/dashboard'); router.refresh()
+    router.push('/hoje'); router.refresh()
   }
   return <main className="onboarding-page"><header><div className="brand-mark"><span>A</span><strong>Aprumo</strong></div><div className="onboarding-progress"><small>ETAPA {step} DE 3</small><div>{[1,2,3].map(item=><span key={item} className={item<=step?'active':''}/>)}</div></div></header><section className="onboarding-card">
     {step===1&&<div className="onboarding-step"><span className="onboarding-icon"><Sparkles size={22}/></span><p className="eyebrow">Comece por você</p><h1>Quem você está<br/><em>construindo?</em></h1><p className="onboarding-lead">Não buscamos uma versão perfeita. Só uma direção que faça sentido.</p><label>Como podemos te chamar?<input autoFocus value={name} maxLength={60} onChange={event=>setName(event.target.value)} placeholder="Seu nome"/></label><label>O que você quer que sua evolução torne possível?<textarea value={purpose} maxLength={180} rows={3} onChange={event=>setLocalPurpose(event.target.value)} placeholder="Ex.: Ter saúde e liberdade para criar..."/></label></div>}

@@ -15,7 +15,7 @@ export default function LoginPage() {
       const { error } = await createSupabaseBrowserClient().auth.signInWithPassword({ email: email.trim(), password })
       if (error) setMessage(error.message); else {
         const requestedNext = new URLSearchParams(window.location.search).get('next')
-        const next = requestedNext?.startsWith('/') && !requestedNext.startsWith('//') ? requestedNext : '/dashboard'
+        const next = requestedNext?.startsWith('/') && !requestedNext.startsWith('//') ? requestedNext : '/hoje'
         router.push(next); router.refresh()
       }
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Não foi possível entrar.') }

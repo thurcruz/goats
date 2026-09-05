@@ -31,7 +31,7 @@ export default function SonoPage() {
   }
 
   return <div className="page-wrap">
-    <Link href="/saude" className="muted mb-5 inline-flex items-center gap-2 text-sm no-underline"><ArrowLeft size={15}/> Saúde</Link>
+    <Link href="/corpo" className="muted mb-5 inline-flex items-center gap-2 text-sm no-underline"><ArrowLeft size={15}/> Corpo</Link>
     <header className="mb-8"><p className="eyebrow">Sono</p><h1 className="display mt-3 text-4xl font-semibold md:text-5xl">Descanso também é treino.</h1><p className="muted mt-4 max-w-xl">Registre quanto e como você dormiu. Os padrões aparecem com o tempo.</p></header>
     <div className="grid gap-5 lg:grid-cols-[1fr_1.1fr]">
       <section className="surface p-6">
